@@ -597,7 +597,8 @@
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Deletion failed",
     "copySuccess": "Copied successfully",
-    "reauthRequired": "Security policy updated — please re-select this file or folder"
+    "reauthRequired": "Security policy updated — please re-select this file or folder",
+    "noSearchChannel": "No search channel available. Please enable a plugin in Settings first."
   },
   "next": {
     "nowPlaying": "Now Playing",

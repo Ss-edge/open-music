@@ -596,7 +596,8 @@
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗",
     "copySuccess": "複製成功",
-    "reauthRequired": "安全策略已升級，請重新選擇該檔案或資料夾"
+    "reauthRequired": "安全策略已升級，請重新選擇該檔案或資料夾",
+    "noSearchChannel": "暫無可用的搜尋管道，請先在設定中啟用外掛"
   },
   "next": {
     "nowPlaying": "正在播放",

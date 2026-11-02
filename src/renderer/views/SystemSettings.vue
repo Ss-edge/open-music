@@ -1401,7 +1401,6 @@ import { VueDraggable } from 'vue-draggable-plus'
 import imageUrl from '../utils/settingImg.dataurl?raw'
 import { useRouter } from 'vue-router'
 import { Appearance, ProxyType } from '@/types/music.d'
-import { STREAM_SENTINEL } from '@/types/schemas'
 import type { PluginId, service } from '@/types/plugin'
 import { getPluginIcon } from '../utils/common'
 
@@ -1841,23 +1840,9 @@ const loadSourcePriority = () => {
     const order = res?.trackInfoOrder
     if (order) trackInfoOrder.value = order
 
-    // 搜索来源优先级：library 插件 + 流媒体
-    const searchOrderSaved = general.value.searchOrder || []
-    const searchItems: { code: string; name: string }[] = [
-      ...allLib,
-      { code: STREAM_SENTINEL, name: '流媒体' }
-    ]
-    if (searchOrderSaved.length > 0) {
-      searchItems.sort((a, b) => {
-        const pa = searchOrderSaved.indexOf(a)
-        const pb = searchOrderSaved.indexOf(b)
-        if (pa === -1 && pb === -1) return 0
-        if (pa === -1) return 1
-        if (pb === -1) return -1
-        return pa - pb
-      })
-    }
-    searchPriority.value = searchItems
+    // 搜索来源优先级：由 store 统一派生（library 插件 + 流媒体），
+    // 已保存的顺序只作为排序提示；插件增删后列表会自动更新。
+    searchPriority.value = pluginMusicStore.searchSources.map((item) => ({ ...item }))
   })
 }
 

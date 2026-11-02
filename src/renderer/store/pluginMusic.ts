@@ -1,8 +1,9 @@
 import z from 'zod'
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, toRaw, watch, readonly } from 'vue'
-import { PluginResultSchema } from '@/types/schemas'
+import { PluginResultSchema, STREAM_SENTINEL } from '@/types/schemas'
 import { useNormalStateStore } from './state'
+import { useSettingsStore } from './settings'
 import i18n from '../plugins/i18n'
 import {
   service,
@@ -51,6 +52,7 @@ export const usePluginMusic = defineStore(
   'pluginMusic',
   () => {
     const { showToast } = useNormalStateStore()
+    const settingsStore = useSettingsStore()
     const scanDir = ref<string[]>([])
     const scanning = ref(false)
     const services = ref<service[]>([])
@@ -140,6 +142,27 @@ export const usePluginMusic = defineStore(
     const loggedInServices = computed(() =>
       services.value.filter((item) => item.status === 'login')
     )
+
+    /**
+     * 搜索渠道：所有 library 插件 + 流媒体聚合。
+     * 渠道由 services 实时派生，general.searchOrder 仅作为用户排序提示，
+     * 因此无需先访问设置页也能拿到可用的搜索渠道。
+     */
+    const searchSources = computed<{ code: PluginId; name: string }[]>(() => {
+      const items: { code: PluginId; name: string }[] = [
+        ...services.value
+          .filter((s) => s.type === 'library')
+          .map((s) => ({ code: s.code, name: s.name })),
+        { code: STREAM_SENTINEL, name: i18n.global.t('nav.stream') }
+      ]
+      const order = (settingsStore.general.searchOrder ?? []).map((item) => item.code)
+      if (!order.length) return items
+      const rank = (code: string) => {
+        const index = order.indexOf(code)
+        return index === -1 ? Number.MAX_SAFE_INTEGER : index
+      }
+      return items.sort((a, b) => rank(a.code) - rank(b.code))
+    })
 
     const pluginMethodCall: PluginMethodCall = async (pluginId, methodName, ...args) => {
       try {
@@ -890,6 +913,7 @@ export const usePluginMusic = defineStore(
       tools,
       services,
       loggedInServices,
+      searchSources,
       tracks,
       albums,
       artists,

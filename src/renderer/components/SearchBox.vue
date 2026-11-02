@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import CustomSelect from './CustomSelect.vue'
 import { useNormalStateStore } from '../store/state'
@@ -56,6 +56,11 @@ const props = defineProps({
   services: {
     type: Array as () => { code: string; name: string }[],
     default: () => []
+  },
+  /** 优先选中的渠道（如上次使用的插件），失效时自动回退 */
+  defaultCode: {
+    type: String,
+    default: ''
   }
 })
 
@@ -73,7 +78,22 @@ const options = computed(() => {
   return props.services.map((s) => ({ label: s.name, value: s.code }))
 })
 
-const plugin = ref(props.services[0]?.code ?? '')
+const plugin = ref('')
+
+// 渠道列表由插件服务派生，可能在组件挂载后才就绪；
+// 同时要处理插件被删除、上次选择失效等情况，保证 plugin 始终有效。
+watch(
+  () => props.services,
+  (list) => {
+    if (!list.length) {
+      plugin.value = ''
+      return
+    }
+    if (list.some((item) => item.code === plugin.value)) return
+    plugin.value = list.find((item) => item.code === props.defaultCode)?.code ?? list[0].code
+  },
+  { immediate: true, deep: true }
+)
 
 const doKeydownEnter = () => {
   $emit('keydownEnter', keywords.value, plugin.value)

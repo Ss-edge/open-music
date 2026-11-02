@@ -73,7 +73,8 @@
       <div class="right-part">
         <SearchBox
           ref="searchBoxRef"
-          :services="general.searchOrder"
+          :services="searchSources"
+          :default-code="general.searchPlugin"
           :clear-keywords="true"
           @keydown-enter="doSearch"
         />
@@ -114,16 +115,20 @@ import { useNormalStateStore } from '../store/state'
 import { useSettingsStore } from '../store/settings'
 import { usePluginMusic } from '../store/pluginMusic'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { openExternal } from '../utils'
 import { PluginId } from '@/types/schemas'
 import { ExploreTab } from '@/types/plugin.js'
 
-const { searchTab, exploreTab } = storeToRefs(useNormalStateStore())
+const normalStateStore = useNormalStateStore()
+const { searchTab, exploreTab } = storeToRefs(normalStateStore)
+const { showToast } = normalStateStore
+const { t } = useI18n()
 const { general } = storeToRefs(useSettingsStore())
 const { useCustomTitlebar } = toRefs(general.value)
 
 const pluginStore = usePluginMusic()
-const { services, users } = toRefs(pluginStore)
+const { services, users, searchSources } = storeToRefs(pluginStore)
 const { pluginMethodCall, handleStatusChange } = pluginStore
 
 const router = useRouter()
@@ -194,14 +199,38 @@ const showUserProfileMenu = (e: MouseEvent): void => {
   userProfileMenu.value?.openMenu(e)
 }
 
+/**
+ * 解析实际使用的搜索渠道。
+ * 优先级：当前选择 → 上次使用的渠道 → 当前活跃插件 → 列表第一项。
+ * 避免插件被删除/重命名后把非法的 plugin 传进搜索页。
+ */
+const resolveSearchPlugin = (requested?: PluginId): PluginId | undefined => {
+  const list = searchSources.value
+  const activeCode = services.value.find((item) => item.active)?.code
+  return (
+    list.find((item) => item.code === requested)?.code ??
+    list.find((item) => item.code === general.value.searchPlugin)?.code ??
+    list.find((item) => item.code === activeCode)?.code ??
+    list[0]?.code
+  )
+}
+
 const doSearch = (keyword: string, plugin: PluginId) => {
-  keywords.value = keyword
-  if (!keyword) return
+  const trimmed = keyword.trim()
+  if (!trimmed) return
+
+  const target = resolveSearchPlugin(plugin)
+  if (!target) {
+    showToast(t('toast.noSearchChannel'))
+    return
+  }
+
+  keywords.value = trimmed
   // 持久化最后选择的搜索插件
-  general.value.searchPlugin = plugin
+  general.value.searchPlugin = target
   router.push({
     name: 'search',
-    query: { keywords: keyword, plugin }
+    query: { keywords: trimmed, plugin: target }
   })
 }
 

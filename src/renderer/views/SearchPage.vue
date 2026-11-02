@@ -48,7 +48,7 @@ import TrackList from '../components/VirtualTrackList.vue'
 import CoverRow from '../components/VirtualCoverRow.vue'
 import MvRow from '../components/MvRow.vue'
 import { PluginId, STREAM_SENTINEL } from '@/types/schemas'
-import { Album, Artist, Mv, Playlist, Track } from '@/types/plugin'
+import { Album, Artist, Mv, Playlist, Track, SearchTab } from '@/types/plugin'
 
 const show = ref(false)
 const keywords = ref('')
@@ -95,6 +95,20 @@ const mvs = reactive<
 )
 
 const searchResult = { tracks, albums, artists, playlists, mvs }
+type SearchSlot<T> = { data: T[]; count: number; sourceContext: Record<string, any> }
+
+/**
+ * 结果槽位按需创建：services 可能在组件挂载后才加载完成，
+ * 也可能收到一个已失效的 pluginId，此时不能假设槽位一定存在。
+ */
+const ensureSlot = (tab: SearchTab, pluginId: PluginId): SearchSlot<any> => {
+  const bucket = searchResult[tab] as Record<PluginId, SearchSlot<any>>
+  if (!bucket[pluginId]) {
+    bucket[pluginId] = { data: [], count: 0, sourceContext: {} }
+  }
+  return bucket[pluginId]
+}
+
 const { searchTab } = storeToRefs(useNormalStateStore())
 const { pluginMethodCall } = pluginStore
 const route = useRoute()
@@ -141,6 +155,21 @@ const displayCount = computed(() => {
   return streamTargets.reduce((sum, p) => sum + (searchResult[searchTab.value][p]?.count || 0), 0)
 })
 
+const resolveSearchPlugin = (raw?: unknown): PluginId => {
+  const requested = typeof raw === 'string' ? (raw as PluginId) : undefined
+  if (requested === STREAM_SENTINEL) return STREAM_SENTINEL
+  // 兼容旧链接：允许直接指定某个 library/stream 插件
+  if (
+    services.value.some(
+      (s) => s.code === requested && (s.type === 'library' || s.type === 'stream')
+    )
+  ) {
+    return requested as PluginId
+  }
+  const libraryServices = services.value.filter((s) => s.type === 'library')
+  return libraryServices.find((s) => s.active)?.code ?? libraryServices[0]?.code ?? STREAM_SENTINEL
+}
+
 const loadData = async (reset = true) => {
   const currentPlugin = plugin.value
   const currentTab = searchTab.value
@@ -150,108 +179,109 @@ const loadData = async (reset = true) => {
   const isStream = currentPlugin === STREAM_SENTINEL || currentService?.type === 'stream'
   let targets: PluginId[] = [currentPlugin]
   if (isStream) {
-    const loggedInStreams = services.value
+    targets = services.value
       .filter((s) => s.type === 'stream' && s.status === 'login')
       .map((s) => s.code)
-    if (loggedInStreams.length > 0) {
-      targets = loggedInStreams
-    }
   }
 
-  // 重置所有目标槽位
-  if (reset) {
-    targets.forEach((p) => {
-      const slot = searchResult[currentTab][p]
-      if (slot) slot.data = []
-    })
+  // sentinel 不是真实插件；没有已登录的流媒体时不应发起请求
+  targets = targets.filter((p) => p !== STREAM_SENTINEL && services.value.some((s) => s.code === p))
+
+  if (!targets.length || !keywords.value) {
+    show.value = true
+    return
   }
 
-  // 并行搜索所有目标
-  const results = await Promise.all(
-    targets.map(async (p) => {
-      const slot = searchResult[currentTab][p]
-      const sourceContext = slot?.sourceContext || {}
-      const res = await pluginMethodCall(p, 'search', {
-        tab: currentTab,
-        keywords: keywords.value,
-        reset,
-        ...sourceContext
+  try {
+    // 重置所有目标槽位
+    if (reset) {
+      targets.forEach((p) => {
+        ensureSlot(currentTab, p).data = []
       })
-      return { plugin: p, res }
-    })
-  )
+    }
 
-  // 处理每个结果，存入 per-plugin 槽位
-  for (const { plugin: p, res } of results) {
-    switch (currentTab) {
-      case 'tracks': {
-        tracks[p].count = res.count
-        tracks[p].sourceContext = res.sourceContext
-        const data = (res.data as Track[]).map((item) => ({
-          ...item,
-          pluginId: p,
-          album: { ...item.album, pluginId: p },
-          artists: item.artists.map((it) => ({ ...it, pluginId: p })),
-          albumArtists: item.albumArtists.map((it) => ({ ...it, pluginId: p }))
-        }))
-        tracks[p].data.push(...data)
-        break
-      }
-      case 'albums': {
-        albums[p].count = res.count
-        albums[p].sourceContext = res.sourceContext
-        const data = (res.data as Album[]).map((item) => ({
-          ...item,
-          artists: item.artists?.map((it) => ({
-            ...it,
-            pluginId: p
-          })),
-          pluginId: p
-        }))
-        albums[p].data.push(...data)
-        break
-      }
-      case 'artists': {
-        artists[p].count = res.count
-        artists[p].sourceContext = res.sourceContext
-        const data = (res.data as Artist[]).map((item) => ({
-          ...item,
-          pluginId: p
-        }))
-        artists[p].data.push(...data)
-        break
-      }
-      case 'playlists': {
-        playlists[p].count = res.count
-        playlists[p].sourceContext = res.sourceContext
-        const data = (res.data as Playlist[]).map((item) => ({
-          ...item,
-          pluginId: p,
-          creator: { ...item.creator, pluginId: p }
-        }))
-        playlists[p].data.push(...data)
-        break
-      }
-      case 'mvs': {
-        mvs[p].count = res.count
-        mvs[p].sourceContext = res.sourceContext
-        const data = (res.data as Mv[]).map((item) => ({
-          ...item,
-          pluginId: p,
-          artists: item.artists?.map((it) => ({
-            ...it,
+    // 并行搜索所有目标
+    const results = await Promise.all(
+      targets.map(async (p) => {
+        const sourceContext = ensureSlot(currentTab, p).sourceContext || {}
+        const res = await pluginMethodCall(p, 'search', {
+          tab: currentTab,
+          keywords: keywords.value,
+          reset,
+          ...sourceContext
+        })
+        return { plugin: p, res }
+      })
+    )
+
+    // 处理每个结果，存入 per-plugin 槽位
+    for (const { plugin: p, res } of results) {
+      const slot = ensureSlot(currentTab, p)
+      slot.count = res.count
+      slot.sourceContext = res.sourceContext
+
+      switch (currentTab) {
+        case 'tracks': {
+          const data = (res.data as Track[]).map((item) => ({
+            ...item,
+            pluginId: p,
+            album: { ...item.album, pluginId: p },
+            artists: item.artists.map((it) => ({ ...it, pluginId: p })),
+            albumArtists: item.albumArtists.map((it) => ({ ...it, pluginId: p }))
+          }))
+          slot.data.push(...data)
+          break
+        }
+        case 'albums': {
+          const data = (res.data as Album[]).map((item) => ({
+            ...item,
+            artists: item.artists?.map((it) => ({
+              ...it,
+              pluginId: p
+            })),
             pluginId: p
           }))
-        }))
-        mvs[p].data.push(...data)
-        break
+          slot.data.push(...data)
+          break
+        }
+        case 'artists': {
+          const data = (res.data as Artist[]).map((item) => ({
+            ...item,
+            pluginId: p
+          }))
+          slot.data.push(...data)
+          break
+        }
+        case 'playlists': {
+          const data = (res.data as Playlist[]).map((item) => ({
+            ...item,
+            pluginId: p,
+            creator: { ...item.creator, pluginId: p }
+          }))
+          slot.data.push(...data)
+          break
+        }
+        case 'mvs': {
+          const data = (res.data as Mv[]).map((item) => ({
+            ...item,
+            pluginId: p,
+            artists: item.artists?.map((it) => ({
+              ...it,
+              pluginId: p
+            }))
+          }))
+          slot.data.push(...data)
+          break
+        }
+        default:
+          break
       }
-      default:
-        break
     }
+  } catch (error) {
+    console.error('[SearchPage] 搜索失败:', error)
+  } finally {
+    show.value = true
   }
-
-  show.value = true
 }
 
 const updatePadding = inject('updatePadding') as (value: number) => void
@@ -267,20 +297,20 @@ watch(searchTab, () => {
 
 onBeforeRouteUpdate((to, from, next) => {
   show.value = false
-  keywords.value = to.query.keywords as string
-  plugin.value = to.query.plugin as PluginId
+  keywords.value = (to.query.keywords as string) || ''
+  plugin.value = resolveSearchPlugin(to.query.plugin)
 
-  if (keywords.value) {
-    loadData()
-  }
+  if (keywords.value) loadData()
+  else show.value = true
   next()
 })
 
 onMounted(() => {
   updatePadding(0)
-  plugin.value = route.query.plugin as PluginId
-  keywords.value = route.query.keywords as string
-  loadData()
+  plugin.value = resolveSearchPlugin(route.query.plugin)
+  keywords.value = (route.query.keywords as string) || ''
+  if (keywords.value) loadData()
+  else show.value = true
 })
 
 onBeforeUnmount(() => {

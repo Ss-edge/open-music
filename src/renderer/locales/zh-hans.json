@@ -611,7 +611,8 @@
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
     "copySuccess": "复制成功",
-    "reauthRequired": "安全策略已升级，请重新选择该文件或文件夹"
+    "reauthRequired": "安全策略已升级，请重新选择该文件或文件夹",
+    "noSearchChannel": "暂无可用搜索渠道，请先在设置中启用插件"
   },
   "next": {
     "nowPlaying": "正在播放",

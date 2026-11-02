@@ -3,8 +3,8 @@
     <div class="icon-container">
       <div
         v-for="platform in saveTypeServices"
-        :key="platform.name"
-        ref="iconWrappers"
+        :key="platform.code"
+        :ref="(el) => setIconWrapper(el, platform.code)"
         class="icon-wrapper"
         @click="selectPlatform(platform.code)"
       >
@@ -12,6 +12,7 @@
           :src="getPluginIcon(platform)"
           :class="{ selected: platform.code === pluginId }"
           :alt="`${platform.name}`"
+          @load="updateIndicatorPosition"
         />
       </div>
       <div class="indicator" :class="{ animated: isIndicatorReady }" :style="indicatorStyle"></div>
@@ -147,14 +148,24 @@ import { usePluginMusic } from '../store/pluginMusic.js'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { LoginType, PluginId } from '@/types/plugin'
+import { LoginType, MusicType, PluginId } from '@/types/plugin'
 import { getPluginIcon } from '../utils/common'
 
 const { t } = useI18n()
 
-const iconWrappers = ref<HTMLElement[]>([])
+// v-for 上的字符串 ref 数组不保证与数据源顺序一致（列表切换后可能反序），
+// 因此按插件 code 记录 DOM 元素，避免用下标定位指示条。
+const iconWrappers = new Map<PluginId, HTMLElement>()
 const indicatorStyle = ref({ width: '0px', left: '0px' })
 const isIndicatorReady = ref(false)
+
+const setIconWrapper = (el: unknown, code: PluginId) => {
+  if (el instanceof HTMLElement) {
+    iconWrappers.set(code, el)
+  } else {
+    iconWrappers.delete(code)
+  }
+}
 const { theme } = storeToRefs(useSettingsStore())
 
 const pluginStore = usePluginMusic()
@@ -233,25 +244,25 @@ const selectedColor = computed(() => {
 })
 
 const updateIndicatorPosition = () => {
-  const index = saveTypeServices.value.findIndex((s) => s.code === pluginId.value)
-  const wrapper = iconWrappers.value[index]
+  const wrapper = pluginId.value ? iconWrappers.get(pluginId.value) : undefined
   const container = wrapper?.parentElement
 
-  if (wrapper && container) {
-    const containerRect = container.getBoundingClientRect()
-    const wrapperRect = wrapper.getBoundingClientRect()
+  if (!wrapper || !container) return
 
-    indicatorStyle.value = {
-      width: `${wrapperRect.width}px`,
-      left: `${wrapperRect.left - containerRect.left}px`
-    }
+  const containerRect = container.getBoundingClientRect()
+  const wrapperRect = wrapper.getBoundingClientRect()
+
+  indicatorStyle.value = {
+    width: `${wrapperRect.width}px`,
+    left: `${wrapperRect.left - containerRect.left}px`
   }
 }
 
 const selectPlatform = (platform: PluginId) => {
-  pluginId.value = platform
-  step.value = 0
-  nextTick(updateIndicatorPosition)
+  if (platform === pluginId.value) return
+  // 平台切换以 URL 参数为准，由 initFromRoute 统一重置页面状态，
+  // 避免只改本地 ref 导致 URL 与界面不一致。
+  router.replace({ name: 'login', params: { service: platform, type: loginType.value } })
 }
 
 const switchMode = (mode: LoginType) => {
@@ -432,53 +443,84 @@ watch(url, (value, old) => {
   saved.value = false
 })
 
-watch(pluginId, (value) => {
-  step.value = 0
-  error.value = null
-  currentMode.value = 'QrCode'
-  const service = services.value.find((s) => s.code === value)!
+const routeNameMap: Record<MusicType, string> = {
+  library: 'library',
+  stream: 'stream',
+  local: 'localMusic'
+}
 
-  if (loginType.value === 'LocalDir') {
-    if (service.status === 'login') {
-      router.push('/localMusic')
-    }
+/**
+ * 路由参数是登录页的唯一状态源。
+ * /login/local/LocalDir 与 /login/emby/Username 共用同一个路由记录，
+ * 组件实例会被复用，因此参数变化时必须手动重新初始化页面状态。
+ */
+let initToken = 0
+
+const initFromRoute = async () => {
+  const { service, type } = route.params as { service?: PluginId; type?: LoginType }
+  if (!service || !type) return
+
+  // 快速连续切换平台时，只允许最后一次 getAccount 的结果落地
+  const token = ++initToken
+  const previousStep = step.value
+
+  loginType.value = type
+  pluginId.value = service
+  currentMode.value = type
+  error.value = null
+  saved.value = false
+  qrCodeSvg.value = ''
+  qrCodeKey.value = ''
+  clearInterval(qrCodeCheckInterval)
+  nextTick(updateIndicatorPosition)
+
+  const currentService = services.value.find((s) => s.code === service)
+  if (currentService?.status === 'login') {
+    router.replace({ name: routeNameMap[currentService.type] })
+    return
+  }
+
+  if (type === 'LocalDir') {
+    step.value = 1
     localScanDir.value = [...pluginScanDir.value]
     return
   }
 
-  if (service.status === 'login') {
-    router.push('/stream')
+  // 先取账号配置，再一次性切换 step，避免切换平台时表单在
+  // 「服务地址输入」和「用户名/密码」之间闪一下
+  const result = await pluginMethodCall(service, 'getAccount')
+  if (token !== initToken) return
+
+  user.value = result.userName
+  password.value = result.pwd
+  url.value = result.baseUrl
+  saved.value = !!result.baseUrl
+  step.value = result.baseUrl ? 1 : 0
+
+  // step 未变化时 watch(step) 不会触发，需要手动为二维码登录换新码
+  if (
+    previousStep === 1 &&
+    step.value === 1 &&
+    loginType.value === 'QrCode' &&
+    currentMode.value === 'QrCode'
+  ) {
+    getQrCodeKey()
   }
+}
 
-  pluginMethodCall(service.code, 'getAccount').then((result) => {
-    user.value = result.userName
-    password.value = result.pwd
-    url.value = result.baseUrl
-    saved.value = !!result.baseUrl
-    if (result.baseUrl) step.value++
-  })
-})
+watch(
+  () => [route.params.service, route.params.type],
+  ([service, type]) => {
+    if (!service || !type) return
+    if (service === pluginId.value && type === loginType.value) return
+    initFromRoute()
+  },
+  { immediate: true }
+)
 
-onMounted(async () => {
-  const { service, type } = route.params as { service: PluginId; type: LoginType }
-
-  pluginId.value = service
-  loginType.value = type
-  currentMode.value = type
-
-  if (type === 'LocalDir') {
-    step.value = 1
-    localScanDir.value = [...pluginStore.scanDir]
-    return
-  }
-
-  await pluginMethodCall(service, 'getAccount').then((result) => {
-    user.value = result.userName
-    password.value = result.pwd
-    url.value = result.baseUrl
-    saved.value = !!result.baseUrl
-    if (result.baseUrl) step.value++
-  })
+onMounted(() => {
+  window.addEventListener('resize', updateIndicatorPosition)
+  nextTick(updateIndicatorPosition)
 })
 
 onBeforeUnmount(() => {
