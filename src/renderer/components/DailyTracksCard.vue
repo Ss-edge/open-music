@@ -1,203 +1,217 @@
 <template>
-  <div class="daily-recommend-card" @click="goToDailyTracks">
-    <img :src="image" loading="lazy" />
-    <div class="container">
-      <div class="title-box">
-        <div class="title">
-          <span>每</span>
-          <span>日</span>
-          <span>推</span>
-          <span>荐</span>
-        </div>
-      </div>
-    </div>
-    <button class="play-button" @click.stop="playDailyTracks">
-      <svg-icon icon-class="play" />
+  <div class="daily-recommend-card">
+    <button class="daily-open" aria-label="打开每日推荐" @click="goToDailyTracks">
+      <span class="cover-art"
+        ><img v-if="image" :src="image" alt="" loading="lazy" /><svg-icon
+          v-else
+          icon-class="local-music"
+      /></span>
+      <span class="daily-info"
+        ><strong>每日推荐</strong
+        ><span>{{
+          loading
+            ? '正在寻找适合你的音乐…'
+            : tracks.length
+              ? `${tracks.length} 首歌曲，为你精选`
+              : '打开推荐，发现新的旋律'
+        }}</span></span
+      >
     </button>
+    <button
+      class="play-button"
+      :disabled="!tracks.length || loading"
+      aria-label="播放每日推荐"
+      @click="playDailyTracks"
+      ><svg-icon icon-class="play"
+    /></button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import SvgIcon from './SvgIcon.vue'
 import { useRouter } from 'vue-router'
 import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { usePluginMusic } from '../store/pluginMusic'
 import { storeToRefs } from 'pinia'
-import _ from 'lodash'
 import { PluginId } from '@/types/plugin'
 import { PlaylistSourceInfo } from '@/types/music'
 
-const props = withDefaults(
-  defineProps<{
-    plugin: PluginId
-  }>(),
-  {}
-)
-
-const defaultCovers = [
-  'https://p2.music.126.net/0-Ybpa8FrDfRgKYCTJD8Xg==/109951164796696795.jpg',
-  'https://p2.music.126.net/QxJA2mr4hhb9DZyucIOIQw==/109951165422200291.jpg',
-  'https://p1.music.126.net/AhYP9TET8l-VSGOpWAKZXw==/109951165134386387.jpg'
-]
-
+const props = defineProps<{ plugin: PluginId }>()
 const stateStore = useNormalStateStore()
 const { dailyTracks } = storeToRefs(stateStore)
-
 const pluginMusic = usePluginMusic()
 const { resizeImage, pluginMethodCall } = pluginMusic
-
 const playerStore = usePlayerStore()
 const { isShuffle } = storeToRefs(playerStore)
 const { replacePlaylist } = playerStore
-
-const firstTrack = computed(() => dailyTracks.value?.[0] || null)
+const tracks = computed(() => dailyTracks.value.filter((track) => track.pluginId === props.plugin))
+const firstTrack = computed(() => tracks.value[0] || null)
 const image = ref('')
-
-const coverUrl = computed(() => {
-  const pic = `${dailyTracks.value[0]?.picUrl || _.sample(defaultCovers)}`
-  const url = new URL(pic)
-  url.searchParams.set('param', '512y512')
-  return url.href
+const loading = ref(true)
+let active = true
+onBeforeUnmount(() => {
+  active = false
 })
-
 const router = useRouter()
-const goToDailyTracks = () => {
-  router.push({ name: 'dailySongs', params: { pluginId: firstTrack.value?.pluginId } })
-}
-
+const goToDailyTracks = () =>
+  router.push({ name: 'dailySongs', params: { pluginId: props.plugin } })
 const playDailyTracks = () => {
+  if (!tracks.value.length || loading.value) return
   const source: PlaylistSourceInfo = {
     type: 'DailySongs',
     plugin: props.plugin,
     sourceContext: { id: '/daily/songs' }
   }
-
-  const trackIDs = dailyTracks.value.map((t) => [t.pluginId, t.sourceContext]) as [
+  const trackIDs = tracks.value.map((track) => [track.pluginId, track.sourceContext]) as [
     PluginId,
     Record<string, any>
   ][]
-  const idx = isShuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
-  replacePlaylist(source, trackIDs, idx)
+  const index = isShuffle.value ? Math.floor(Math.random() * trackIDs.length) : 0
+  replacePlaylist(source, trackIDs, index)
 }
-
-watch(firstTrack, (value) => {
-  if (!value) {
-    image.value = coverUrl.value
-    return
-  }
-  resizeImage(value.pluginId, value.picUrl, 512).then((result) => (image.value = result))
-})
-
+watch(
+  firstTrack,
+  async (track) => {
+    image.value = track?.picUrl || ''
+    if (!track?.picUrl) return
+    try {
+      const resized = await resizeImage(track.pluginId, track.picUrl, 512)
+      if (firstTrack.value === track) image.value = resized
+    } catch {
+      // Keep the original artwork if the source cannot resize it.
+    }
+  },
+  { immediate: true }
+)
 onMounted(async () => {
-  pluginMethodCall(props.plugin, 'getRecommendTracks').then((result) => {
+  try {
+    const result = await pluginMethodCall(props.plugin, 'getRecommendTracks')
+    if (!active) return
     dailyTracks.value = result.data.map((item) => ({
       ...item,
       album: { ...item.album, pluginId: props.plugin },
-      artists: item.artists.map((it) => ({ ...it, pluginId: props.plugin })),
-      albumArtists: item.albumArtists.map((it) => ({ ...it, pluginId: props.plugin })),
+      artists: item.artists.map((artist) => ({ ...artist, pluginId: props.plugin })),
+      albumArtists: item.albumArtists.map((artist) => ({ ...artist, pluginId: props.plugin })),
       pluginId: props.plugin
     }))
-  })
+  } catch {
+    if (active) dailyTracks.value = []
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
 <style scoped lang="scss">
 .daily-recommend-card {
-  border-radius: 1rem;
-  height: 198px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  // z-index: 1;
-}
-
-img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  animation: move 38s infinite;
-  animation-direction: alternate;
-  animation-play-state: running;
-  z-index: -1;
-
-  &.paused {
-    animation-play-state: paused;
-  }
-}
-
-.container {
-  background: linear-gradient(to left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.28));
-  height: 198px;
-  width: 50%;
   display: flex;
   align-items: center;
-  border-radius: 0.94rem;
-}
-
-.title-box {
-  height: 148px;
-  width: 148px;
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-left: 25px;
-  user-select: none;
-  .title {
-    height: 100%;
-    width: 100%;
-    font-weight: 600;
-    font-size: 64px;
-    line-height: 48px;
-    opacity: 0.96;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-items: center;
-    place-items: center;
-  }
-}
-
-.play-button {
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: white;
-  position: absolute;
-  right: 1.6rem;
-  bottom: 1.4rem;
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 50%;
-  margin-bottom: 2px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 44px;
-  width: 44px;
-  transition: 0.2s;
-  cursor: default;
-
-  .svg-icon {
-    margin-left: 4px;
-    height: 16px;
-    width: 16px;
-  }
-
+  min-width: 0;
+  height: 140px;
+  border-radius: 8px;
+  background: var(--color-secondary-bg-for-transparent);
+  padding: 18px;
+  gap: 14px;
+  transition: background-color 160ms;
   &:hover {
-    background: rgba(255, 255, 255, 0.44);
-  }
-  &:active {
-    transform: scale(0.94);
+    background: var(--color-secondary-bg);
   }
 }
-
-@keyframes move {
-  0% {
-    transform: translateY(0);
+.daily-open {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 18px;
+  padding: 0;
+  min-width: 0;
+  color: var(--color-text);
+  text-align: left;
+}
+.cover-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 104px;
+  height: 104px;
+  background: var(--color-secondary-bg);
+  border-radius: 6px;
+  overflow: hidden;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-  100% {
-    transform: translateY(-50%);
+  .svg-icon {
+    width: 36px;
+    height: 36px;
+    color: var(--color-primary);
+  }
+}
+.daily-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  strong {
+    font-size: 20px;
+    font-weight: 750;
+  }
+  > span {
+    color: var(--color-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
+.play-button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #000;
+  .svg-icon {
+    width: 18px;
+    height: 18px;
+    margin-left: 3px;
+  }
+  &:hover:not(:disabled) {
+    transform: scale(1.04);
+  }
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 4px;
+}
+@media (max-width: 1100px) {
+  .daily-recommend-card {
+    padding: 14px;
+    height: 120px;
+  }
+  .cover-art {
+    width: 84px;
+    height: 84px;
+  }
+  .daily-open {
+    gap: 12px;
+  }
+  .daily-info strong {
+    font-size: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-recommend-card,
+  .play-button {
+    transition: none;
   }
 }
 </style>

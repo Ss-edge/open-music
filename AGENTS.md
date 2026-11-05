@@ -9,7 +9,7 @@
 - **状态管理**: Pinia (persist: pinia-plugin-persistedstate)
 - **路由**: Vue Router 4 (Hash 模式)
 - **数据库**: better-sqlite3 (主进程) + Dexie (渲染进程 IndexedDB)
-- **内嵌服务**: Fastify (端口 40001 dev / 41830 prod)
+- **内嵌服务**: Fastify (端口 40002 dev / 41831 prod)
 - **插件沙箱**: Node.js Worker 线程
 - **数据校验**: Zod
 - **音频**: Web Audio API + SoundTouchJS + Plyr

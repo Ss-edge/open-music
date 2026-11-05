@@ -1433,7 +1433,7 @@ const {
   forceFactor
 } = toRefs(general.value)
 const { appearance, colors } = toRefs(theme.value)
-const customizeColor = computed(() => colors.value[4])
+const customizeColor = computed(() => colors.value.find((color) => color.name === 'Customize')!)
 const {
   showLyric,
   showControl,

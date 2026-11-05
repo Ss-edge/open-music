@@ -153,23 +153,23 @@ export default defineConfig(({ mode }) => {
       RendererPlugin()
     ],
     server: {
-      port: 41830,
+      port: 41831,
       strictPort: true,
       proxy: {
         '/netease': {
-          target: `http://127.0.0.1:40001`,
+          target: `http://127.0.0.1:40002`,
           changeOrigin: true
         },
         '/local-asset': {
-          target: `http://127.0.0.1:40001`,
+          target: `http://127.0.0.1:40002`,
           changeOrigin: true
         },
         '/stream-asset': {
-          target: `http://127.0.0.1:40001`,
+          target: `http://127.0.0.1:40002`,
           changeOrigin: true
         },
         '/lastfm-callback': {
-          target: `http://127.0.0.1:40001`,
+          target: `http://127.0.0.1:40002`,
           changeOrigin: true
         }
       }

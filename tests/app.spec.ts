@@ -15,7 +15,11 @@ test.beforeAll(async () => {
   // --no-sandbox：受限环境下 Chromium sandbox 初始化失败会导致应用立即退出（与 security.spec.ts 同因）。
   // --user-data-dir：使用独立数据目录，避免污染真实用户数据。
   appElectron = await electron.launch({
-    args: ['dist/main/index.js', '--no-sandbox', `--user-data-dir=${userDataDir}`],
+    args: [
+      'tests/electron-test-launcher.cjs',
+      '--no-sandbox',
+      `--test-user-data-dir=${userDataDir}`
+    ],
     locale: 'en-US',
     colorScheme: 'light',
     env: {
@@ -25,7 +29,7 @@ test.beforeAll(async () => {
   })
   appWindow = await appElectron.firstWindow()
 
-  await appWindow.waitForEvent('load')
+  await appWindow.waitForLoadState('domcontentloaded')
 })
 
 test('Environment check', async () => {

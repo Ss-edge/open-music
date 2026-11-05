@@ -22,14 +22,14 @@ last-reviewed: 2025-07-21
 
 | 属性     | 值                                                |
 | -------- | ------------------------------------------------- |
-| 端口     | 40001（dev）/ 41830（prod）                       |
+| 端口     | 40002（dev）/ 41831（prod）                       |
 | 用途     | 本地资源服务 + 网易云 API 代理                    |
 | 静态文件 | `@fastify/static` 提供 `out/renderer/` 的静态资源 |
 | Cookie   | `@fastify/cookie` 解析请求 cookie                 |
 | 监听地址 | 显式 `127.0.0.1`（不暴露到局域网）                |
 | 响应头   | `Content-Security-Policy`（安全子集）、`X-Content-Type-Options: nosniff` |
 
-> ⚠️ **fail-closed**：如果 41830 已被其它进程占用，主进程会弹错并退出，而**不会**创建窗口。
+> ⚠️ **fail-closed**：如果 41831 已被其它进程占用，主进程会弹错并退出，而**不会**创建窗口。
 > 否则窗口会加载到不属于本应用的内容，而其 origin 与 `Constants.APP_ORIGIN` 相同，
 > `ipcGuard` 无法识别（见 [安全边界与不变量](./security)）。
 
@@ -88,7 +88,7 @@ last-reviewed: 2025-07-21
 
 ```
 Renderer (fetch)
-  → Fastify (localhost:41830)
+  → Fastify (localhost:41831)
     → httpHandler（本地资源）
     → netease（网易云代理）
     → NeteaseCloudMusicApi / UnblockNeteaseMusic

@@ -155,7 +155,7 @@ const store = new Store<TypeElectronStore>({
           globalShortcut: 'Alt+CommandOrControl+M'
         }
       ],
-      enableAmuseServer: true,
+      enableAmuseServer: false,
       lastfmSession: { name: '', key: '', subscriber: 0 },
       proxy: { type: 0, address: '', port: '' },
       forceFactor: false,

@@ -81,8 +81,8 @@ last-reviewed: 2026-09-26
 | `/local-asset/player` | 无鉴权的第三方集成接口（读取 `window.vutronmusic`）。未启用 CORS，网页无法读取响应；本机同用户进程本来就能读取应用数据，因此未加 token |
 | `/netease/*` 代理 | 本机同用户进程可访问，且没有 CSRF 保护。因默认 `SameSite=Lax` 且无 CORS，跨站写入路径有限，但值得单独评估 |
 | `vutron://get-color`、`get-online-music` | 属于网络请求（SSRF 面）而非本地文件读取，未在本轮限制 |
-| `blob:` URL 的 origin | `new URL('blob:http://localhost:41830/…').origin` 等于 `APP_ORIGIN`，因此 `ipcGuard` 会视其为可信来源。走到这一步需要攻击者已能在应用 origin 执行脚本（即缺陷 1 的前提，已修复）；若要更严，可要求 frame URL 协议为 `http:` 且路径落在已知入口内 |
-| dev 模式的端口 fail-closed 覆盖面 | dev 时 Fastify 绑 40001、页面由 Vite(41830) 提供，因此「41830 被他人占用」在 dev 不会被 `createFastifyApp` 的 try/catch 捕获（生产环境才是被保护的情形） |
+| `blob:` URL 的 origin | `new URL('blob:http://localhost:41831/…').origin` 等于 `APP_ORIGIN`，因此 `ipcGuard` 会视其为可信来源。走到这一步需要攻击者已能在应用 origin 执行脚本（即缺陷 1 的前提，已修复）；若要更严，可要求 frame URL 协议为 `http:` 且路径落在已知入口内 |
+| dev 模式的端口 fail-closed 覆盖面 | dev 时 Fastify 绑 40002、页面由 Vite(41831) 提供，因此「41831 被他人占用」在 dev 不会被 `createFastifyApp` 的 try/catch 捕获（生产环境才是被保护的情形） |
 
 ## 四、修改这些代码时的检查清单
 

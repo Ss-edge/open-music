@@ -1,12 +1,12 @@
 <template>
-  <div id="app" :class="{ 'user-select-none': userSelectNone }">
+  <div id="app" :class="{ 'user-select-none': userSelectNone }" :style="shellStyle">
     <ScrollBar v-show="!showLyrics" />
     <SideNav />
     <NavBar ref="navBarRef" />
     <div id="main" ref="mainRef" :style="mainStyle" @scroll="scrollEvent">
       <router-view> </router-view>
     </div>
-    <PlayerBar v-if="enabled" v-show="showPlayerBar" />
+    <PlayerBar v-show="showPlayerBar" />
     <ShowToast />
     <ConfirmModal />
     <AddTrackToPlaylistModal />
@@ -109,7 +109,7 @@ const fetchData = () => {
 
 const scrollEvent = () => {
   const scrollTop = mainRef.value.scrollTop
-  const containerHeight = mainRef.value.clientHeight - 64
+  const containerHeight = mainRef.value.clientHeight
   const contentHeight = mainRef.value.scrollHeight
 
   registerInstance(instanceId.value)
@@ -196,9 +196,14 @@ const scrollBarRef = ref()
 const instanceId = ref('appInstance')
 const hasCustomTitleBar = ref(false)
 
+const shellStyle = computed(() => ({
+  '--open-titlebar-height': (hasCustomTitleBar.value ? 32 : 0) + 'px',
+  '--open-player-space': showPlayerBar.value ? '104px' : '8px'
+}))
+
 const mainStyle = computed(() => ({
-  paddingTop: (hasCustomTitleBar.value ? 84 : 64) + 'px',
-  paddingBottom: padding.value + 'px'
+  paddingTop: '24px',
+  paddingBottom: Math.max(32, padding.value - 64) + 'px'
 }))
 
 const showPlayerBar = computed(() => {
@@ -322,7 +327,8 @@ onBeforeUnmount(() => {
 #app {
   width: 100%;
   color: var(--color-text);
-  transition: all 0.4s;
+  --open-sidebar-width: 252px;
+  --open-player-height: 96px;
 }
 
 .user-select-none {
@@ -330,11 +336,35 @@ onBeforeUnmount(() => {
 }
 
 #main {
-  padding: 0px 30px 0px 130px;
+  position: fixed;
+  top: calc(var(--open-titlebar-height, 0px) + 80px);
+  left: calc(var(--open-sidebar-width) + 16px);
+  right: 8px;
+  bottom: var(--open-player-space, 104px);
+  padding: 24px 28px 32px;
   box-sizing: border-box;
   scrollbar-width: none;
   color: var(--color-text);
-  height: 100vh;
+  background: var(--color-body-bg);
+  border-radius: 0 0 8px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1000px) {
+  #app {
+    --open-sidebar-width: 208px;
+  }
+  #main {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 820px) {
+  #app {
+    --open-sidebar-width: 64px;
+  }
 }
 
 #main::-webkit-scrollbar {

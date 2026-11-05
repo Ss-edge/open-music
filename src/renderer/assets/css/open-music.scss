@@ -1,0 +1,232 @@
+// Open Music: common surfaces. The independent desktop lyric window keeps its own stylesheet.
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-app-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  font-family: 'Segoe UI Variable', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+[tabindex] {
+  &:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-secondary);
+}
+
+#main {
+  h1 {
+    font-size: 30px;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    font-weight: 750;
+  }
+  .index-row > .title {
+    font-size: 23px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+  }
+  .trackitem {
+    border-radius: 5px;
+  }
+  .trackitem.odd {
+    background: transparent;
+  }
+  .trackitem.focus,
+  .trackitem:hover {
+    background: var(--color-secondary-bg);
+  }
+  .trackitem.playing .title {
+    color: var(--color-primary);
+  }
+  .trackitem.playing {
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-body-bg));
+  }
+  .trackitem .title {
+    font-weight: 500;
+  }
+  .trackitem .artist,
+  .trackitem .album {
+    color: var(--color-secondary);
+  }
+
+  .system-settings {
+    .slide-container {
+      position: sticky;
+      top: -24px;
+      z-index: 4;
+      background: var(--color-body-bg);
+    }
+    .slideBar {
+      position: static;
+      width: 100%;
+      max-width: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 0 16px;
+      background: var(--color-body-bg);
+      .tab {
+        height: auto;
+        min-height: 34px;
+        padding: 8px 16px;
+        box-sizing: border-box;
+        font-size: 13px;
+        border-radius: 20px;
+        background: var(--color-secondary-bg);
+      }
+      .slide {
+        display: none;
+      }
+      .tab.active {
+        color: var(--color-primary-contrast);
+        background: var(--color-text);
+        margin-left: 0;
+        opacity: 1;
+      }
+    }
+    .main-container {
+      padding: 0;
+    }
+    .main-container > .container {
+      padding-top: 12px;
+    }
+    .item {
+      border-bottom: 1px solid var(--color-border);
+    }
+    .item .title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .item .description,
+    .item .subtitle {
+      color: var(--color-secondary);
+    }
+    .user-info {
+      margin-top: 0;
+      margin-bottom: 24px;
+      border-radius: 8px;
+    }
+  }
+
+  .stream-container {
+    min-height: calc(100vh - 260px);
+    padding: 24px 0 48px;
+    .title {
+      margin-top: 28px;
+      font-size: 30px;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .input-box .container {
+      border-radius: 6px;
+      background: var(--color-secondary-bg);
+    }
+    .input-box input {
+      color: var(--color-text);
+    }
+    .login-button,
+    .next-button {
+      border-radius: 24px;
+    }
+  }
+
+  .local-music {
+    .section-one {
+      margin-top: 0;
+      border-radius: 8px;
+      background: var(--color-secondary-bg);
+      overflow: hidden;
+      .left .content {
+        width: 50%;
+        padding: 28px;
+      }
+      .left .content-info {
+        gap: 16px 24px;
+      }
+      .right-top {
+        left: 54%;
+        right: 24px;
+        max-width: none;
+        font-size: 14px;
+      }
+      .right-bottom {
+        left: 54%;
+        right: 24px;
+        width: auto;
+        font-size: 13px;
+        text-align: left;
+        text-overflow: ellipsis;
+      }
+    }
+    .section-two .tabs-row .tabs {
+      font-size: 13px;
+      gap: 4px;
+      .tab {
+        margin-right: 0;
+        padding: 8px 10px;
+        border-radius: 20px;
+      }
+    }
+  }
+}
+
+.context-menu,
+.contextMenu {
+  border-radius: 6px;
+}
+
+.win32-titlebar {
+  background: var(--color-app-bg);
+  height: 32px;
+  .title {
+    color: var(--color-secondary);
+    font-size: 11px;
+  }
+}
+
+[data-theme='dark'] .win32-titlebar {
+  --hover: #282828;
+  --active: #333;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

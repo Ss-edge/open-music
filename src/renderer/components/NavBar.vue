@@ -5,10 +5,18 @@
       <Win32TitleBar v-if="isWin" />
 
       <div class="navigation-buttons">
-        <button-icon @click.stop="router.go(-1)">
+        <button-icon
+          :aria-label="$t('openMusic.back')"
+          :title="$t('openMusic.back')"
+          @click.stop="router.go(-1)"
+        >
           <svg-icon icon-class="arrow-left" />
         </button-icon>
-        <button-icon @click.stop="router.go(1)">
+        <button-icon
+          :aria-label="$t('openMusic.forward')"
+          :title="$t('openMusic.forward')"
+          @click.stop="router.go(1)"
+        >
           <svg-icon icon-class="arrow-right" />
         </button-icon>
       </div>
@@ -76,9 +84,19 @@
           :services="searchSources"
           :default-code="general.searchPlugin"
           :clear-keywords="true"
+          :show-input-initially="true"
+          :input-width="220"
+          :placeholder="$t('openMusic.searchPlaceholder')"
           @keydown-enter="doSearch"
         />
-        <img class="avatar" :src="avatarUrl" loading="lazy" @click="showUserProfileMenu" />
+        <button
+          class="profile-button"
+          :aria-label="$t('openMusic.account')"
+          :title="$t('openMusic.account')"
+          @click="showUserProfileMenu"
+        >
+          <img class="avatar" :src="avatarUrl" alt="" loading="lazy" />
+        </button>
       </div>
     </nav>
     <ContextMenu ref="userProfileMenu">
@@ -148,11 +166,9 @@ const isLooseLoggedIn = computed(() => {
 })
 const isLinux = computed(() => window.env?.isLinux || false)
 const isWin = computed(() => window.env?.isWindows)
-const navStyle = computed(() => {
-  return {
-    paddingLeft: isLinux.value || isWin.value ? '20px' : '6vw'
-  }
-})
+const navStyle = computed(() => ({
+  '--open-native-bar': isLinux.value || isWin.value ? '32px' : '0px'
+}))
 
 defineExpose({ searchBoxRef })
 
@@ -242,74 +258,153 @@ onMounted(() => {
 <style lang="scss" scoped>
 nav {
   position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
+  top: calc(var(--open-titlebar-height, 0px) + 8px);
+  right: 8px;
+  left: calc(var(--open-sidebar-width) + 16px);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 64px;
-  padding: 0 30px 0 0;
-  box-sizing: content-box;
-  backdrop-filter: saturate(180%) blur(20px);
-  background-color: var(--color-navbar-bg);
+  gap: 16px;
+  height: 72px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  background: var(--color-body-bg);
+  border-radius: 8px 8px 0 0;
   z-index: 10;
   -webkit-app-region: drag;
 }
-
-nav.has-custom-titlebar {
-  padding-top: 20px;
-  -webkit-app-region: no-drag;
-}
-
 .navigation-buttons {
   display: flex;
-  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
   .svg-icon {
-    height: 24px;
-    width: 24px;
+    width: 18px;
+    height: 18px;
   }
   button {
-    -webkit-app-region: no-drag;
-  }
-}
-
-.search-tabs {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 40px;
-  .item {
-    cursor: pointer;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: 600;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin: 0;
+    background: var(--color-secondary-bg);
     -webkit-app-region: no-drag;
     &:hover {
-      color: var(--color-primary);
+      background: var(--color-secondary-bg-for-transparent);
+    }
+  }
+}
+.search-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  .item {
+    white-space: nowrap;
+    cursor: pointer;
+    border-radius: 18px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--color-secondary-bg);
+    -webkit-app-region: no-drag;
+    &:hover {
+      background: var(--color-secondary-bg-for-transparent);
     }
   }
   .active {
-    color: var(--color-primary);
+    background: var(--color-text);
+    color: var(--color-primary-contrast);
   }
 }
-
 .right-part {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  gap: 16px;
+  margin-left: auto;
+  min-width: 0;
   -webkit-user-drag: none;
+  :deep(.search-container) {
+    height: 44px;
+    border-radius: 24px;
+    background: var(--color-secondary-bg);
+  }
+  :deep(.search-container:focus-within) {
+    outline: 2px solid var(--color-text);
+    outline-offset: -2px;
+  }
+  :deep(.search-icon) {
+    width: 42px;
+    height: 42px;
+  }
+  :deep(.search-icon .svg-icon) {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    color: var(--color-secondary);
+  }
+  :deep(.search-input) {
+    max-width: 22vw;
+    font-size: 13px;
+  }
+  :deep(.custom-select) {
+    min-width: 82px;
+    max-width: 100px;
+  }
+}
+.profile-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  flex-shrink: 0;
+  background: var(--color-secondary-bg);
+  -webkit-app-region: no-drag;
   .avatar {
-    user-select: none;
-    height: 30px;
-    margin-left: 12px;
-    vertical-align: -7px;
+    display: block;
+    width: 28px;
+    height: 28px;
+    margin: auto;
     border-radius: 50%;
-    cursor: pointer;
-    -webkit-app-region: no-drag;
+    object-fit: cover;
     -webkit-user-drag: none;
-    &:hover {
-      filter: brightness(80%);
+  }
+}
+@media (max-width: 1200px) {
+  nav {
+    gap: 10px;
+    padding: 0 20px;
+  }
+  .search-tabs {
+    gap: 4px;
+    .item {
+      padding: 7px 9px;
+    }
+  }
+  .right-part {
+    gap: 10px;
+    :deep(.search-input) {
+      max-width: 15vw;
+    }
+  }
+}
+@media (max-width: 1000px) {
+  .search-tabs {
+    gap: 2px;
+    .item {
+      font-size: 11px;
+      padding: 7px;
+    }
+  }
+  .navigation-buttons {
+    gap: 2px;
+  }
+  .right-part {
+    gap: 8px;
+    :deep(.custom-select) {
+      min-width: 70px;
+      max-width: 70px;
+    }
+    :deep(.search-input) {
+      max-width: 12vw;
     }
   }
 }

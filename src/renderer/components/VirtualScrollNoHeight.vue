@@ -90,6 +90,7 @@ const styleBefore = ref()
 const startOffset = ref(0)
 const position = ref<any[]>([])
 const windowHeight = ref(window.innerHeight)
+const panelViewportHeight = ref(0)
 const scrollToIndex = ref(0)
 const instanceId = ref('')
 const { list, itemSize } = toRefs(props)
@@ -123,8 +124,8 @@ const footerHeight = computed(() => footerRef.value?.clientHeight || 0)
 
 const containerHeight = computed(() => {
   const navBarHeight = hasCustomTitleBar.value ? 84 : 64
-  const winHeight = windowHeight.value - navBarHeight
-  const height = props.height || winHeight
+  const available = panelViewportHeight.value || windowHeight.value - navBarHeight
+  const height = props.height ? Math.min(props.height, available) : available
   return props.enableVirtualScroll ? Math.min(height, listHeight.value) : listHeight.value
 })
 const contentTransform = computed(() => `translateY(${startOffset.value}px)`)
@@ -422,13 +423,24 @@ const observer = new IntersectionObserver(
   },
   {
     root: null,
-    rootMargin: `-64px 0px 0px 0px`,
+    rootMargin: '0px',
     threshold: 0.99
   }
 )
 
+const updatePanelViewport = () => {
+  const main = mainRef.value
+  if (!main) return
+  const style = window.getComputedStyle(main)
+  panelViewportHeight.value = Math.max(
+    1,
+    main.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
+  )
+}
+const panelObserver = new ResizeObserver(updatePanelViewport)
 const updateWindowHeight = () => {
   windowHeight.value = window.innerHeight
+  updatePanelViewport()
 }
 
 watch(enableScrolling, (value) => {
@@ -495,6 +507,8 @@ eventBus.on('update-done', startEvent)
 
 onActivated(() => {
   nextTick(() => {
+    updatePanelViewport()
+    if (mainRef.value) panelObserver.observe(mainRef.value)
     observer.observe(listRef.value)
     setTimeout(() => {
       updateItemsSize()
@@ -505,6 +519,7 @@ onActivated(() => {
 onDeactivated(() => {
   unregisterInstance(instanceId.value)
   observer.unobserve(listRef.value)
+  panelObserver.disconnect()
   virtualScrolling.value = false
 })
 
@@ -513,6 +528,8 @@ onMounted(() => {
   registerInstance(instanceId.value)
   window.addEventListener('resize', updateWindowHeight)
   nextTick(() => {
+    updatePanelViewport()
+    if (mainRef.value) panelObserver.observe(mainRef.value)
     observer.observe(listRef.value)
     setTimeout(() => {
       updateItemsSize()
@@ -531,6 +548,7 @@ onBeforeUnmount(() => {
   unregisterInstance(instanceId.value)
   window.removeEventListener('resize', updateWindowHeight)
   observer.unobserve(listRef.value)
+  panelObserver.disconnect()
   virtualScrolling.value = false
   eventBus.off('update-start', startEvent)
   // @ts-ignore

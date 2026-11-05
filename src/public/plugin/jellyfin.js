@@ -92,7 +92,7 @@ const formatPlaylist = (item) => ({
   icon: 'jellyfin',
   picUrl: item.ImageTags?.Primary
     ? getPic(item.Id, 256)
-    : `http://localhost:41830/local-asset/default-cover?v=${item.Id}`,
+    : `http://localhost:41831/local-asset/default-cover?v=${item.Id}`,
   isMine: true,
   trackCount: item.ChildCount || 0,
   playCount: item?.UserData?.PlayCount || 0,
@@ -117,7 +117,7 @@ const formatPlaylistDetail = (playlist) => ({
   subscribed: playlist.UserData?.IsFavorite || false,
   picUrl: playlist.ImageTags?.Primary
     ? getPic(playlist.Id, 512)
-    : `http://localhost:41830/local-asset/default-cover?v=${playlist.Id}`,
+    : `http://localhost:41831/local-asset/default-cover?v=${playlist.Id}`,
   trackCount: playlist.ChildCount || 0,
   updateTime: new Date(playlist.DateCreated || 0).getTime(),
   description: playlist.Overview || '',
@@ -183,7 +183,7 @@ const formatTrack = (item, size = 512, showPlayCount = true) => {
       name: item.Album ?? '',
       picUrl: item.ImageTags?.Primary
         ? getPic(item.Id, 64)
-        : `http://localhost:41830/stream-asset?sourceContext=${encodeURIComponent(JSON.stringify(sourceContext))}&size=${size}`,
+        : `http://localhost:41831/stream-asset?sourceContext=${encodeURIComponent(JSON.stringify(sourceContext))}&size=${size}`,
       pluginId: '',
       sourceContext: { id: item.AlbumId ?? '' }
     },
@@ -204,7 +204,7 @@ const formatTrack = (item, size = 512, showPlayCount = true) => {
     size: item.MediaSources?.[0]?.Size || 0,
     picUrl: item.ImageTags?.Primary
       ? getPic(item.Id, size)
-      : `http://localhost:41830/stream-asset?sourceContext=${encodeURIComponent(JSON.stringify(sourceContext))}&size=${size}`,
+      : `http://localhost:41831/stream-asset?sourceContext=${encodeURIComponent(JSON.stringify(sourceContext))}&size=${size}`,
     pluginId: '',
     type: meta.type,
     sourceContext
@@ -244,7 +244,7 @@ const formatAlbum = (item) => ({
   icon: 'jellyfin',
   picUrl: item.ImageTags?.Primary
     ? getPic(item.Id, 512)
-    : `http://localhost:41830/local-asset/default-cover?v=${item.Id}`,
+    : `http://localhost:41831/local-asset/default-cover?v=${item.Id}`,
   artists:
     item.ArtistItems?.map((it) => ({
       id: it.Id ?? '',
@@ -297,7 +297,7 @@ const getArtists = async (_params) => {
     name: item.Name ?? '',
     picUrl: item.ImageTags?.Primary
       ? getPic(item.Id, 512)
-      : `http://localhost:41830/local-asset/default-cover?v=${item.Id}`,
+      : `http://localhost:41831/local-asset/default-cover?v=${item.Id}`,
     pluginId: '',
     sourceContext: { id: item.Id }
   }))

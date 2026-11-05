@@ -5,6 +5,7 @@
         :id="item.id"
         :plugin-id="item.pluginId!"
         :image-url="getImageUrl(item)"
+        :image-alt="item.name"
         :type="type"
         :source-context="item.sourceContext"
         :play-button-size="type === 'Artist' ? 26 : playButtonSize"
@@ -24,9 +25,10 @@
           <span v-show="isPrivacy(item)" class="lock-icon">
             <SvgIcon icon-class="lock" />
           </span>
-          <router-link :to="`/${type}/${item.pluginId}/${JSON.stringify(item.sourceContext)}`">{{
-            item.name
-          }}</router-link>
+          <router-link
+            :to="`/${type}/${item.pluginId}/${encodeURIComponent(JSON.stringify(item.sourceContext))}`"
+            >{{ item.name }}</router-link
+          >
         </div>
         <div v-show="type !== 'Artist' && subText !== 'none'" class="info">
           <SubTextContent v-bind="getSubText(item)" />
@@ -56,9 +58,9 @@ const props = defineProps({
   showPlayCount: { type: Boolean, default: false },
   type: { type: String as PropType<CoverType>, required: true },
   subText: { type: String, default: 'null' },
-  subTextFontSize: { type: String, default: '16px' },
+  subTextFontSize: { type: String, default: '15px' },
   colunmNumber: { type: Number, default: 5 },
-  gap: { type: String, default: '34px 24px' },
+  gap: { type: String, default: '16px 8px' },
   playButtonSize: { type: Number, default: 22 }
 })
 
@@ -80,7 +82,9 @@ const test = ref([])
 
 const rowStyles = computed(() => {
   return {
-    'grid-template-columns': `repeat(${props.colunmNumber}, 1fr)`,
+    '--cover-columns': props.colunmNumber,
+    '--cover-columns-compact': Math.min(props.colunmNumber, 4),
+    '--cover-columns-narrow': Math.min(props.colunmNumber, 3),
     gap: props.gap
   }
 })
@@ -106,16 +110,17 @@ const isPrivacy = (item: any) => {
 const getSubText = (item: any): { text: string; to?: RouteLocationRaw | null } => {
   const type = props.subText
   if (type === 'artist') {
+    const artist = item.artists?.[0]
     return {
-      text: item.name ?? '',
+      text: item.artists?.map((entry) => entry.name).join(', ') || '',
       // 缺少插件信息时不产出路由目标，避免生成无法解析的链接
       to:
-        item.pluginId && item.sourceContext
+        artist?.pluginId && artist?.sourceContext
           ? {
               name: 'ArtistPage',
               params: {
-                pluginId: item.pluginId,
-                sourceContext: JSON.stringify(item.sourceContext)
+                pluginId: artist.pluginId,
+                sourceContext: JSON.stringify(artist.sourceContext)
               }
             }
           : null
@@ -150,27 +155,38 @@ const getSubText = (item: any): { text: string; to?: RouteLocationRaw | null } =
 <style scoped lang="scss">
 .cover-row {
   display: grid;
+  grid-template-columns: repeat(var(--cover-columns), minmax(0, 1fr));
+  margin: 0 -10px;
 }
 
 .item {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
   color: var(--color-text);
+  transition: background-color 160ms;
+  &:hover,
+  &:focus-within {
+    background-color: var(--color-secondary-bg-for-transparent);
+  }
   .text {
-    margin-top: 8px;
+    margin-top: 12px;
     .title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      line-height: 20px;
+      line-height: 22px;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
       line-clamp: 2;
       overflow: hidden;
-      word-break: break-all;
+      word-break: break-word;
     }
     .info {
-      font-size: 12px;
-      opacity: 0.68;
-      line-height: 18px;
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--color-secondary);
+      line-height: 20px;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
@@ -184,7 +200,7 @@ const getSubText = (item: any): { text: string; to?: RouteLocationRaw | null } =
 .item.artist {
   display: flex;
   flex-direction: column;
-  text-align: center;
+  text-align: left;
   .cover {
     display: flex;
   }
@@ -193,9 +209,23 @@ const getSubText = (item: any): { text: string; to?: RouteLocationRaw | null } =
   }
 }
 
+@media (max-width: 1100px) {
+  .cover-row {
+    grid-template-columns: repeat(var(--cover-columns-compact), minmax(0, 1fr));
+  }
+}
 @media (max-width: 834px) {
+  .cover-row {
+    grid-template-columns: repeat(var(--cover-columns-narrow), minmax(0, 1fr));
+  }
   .item .text .title {
     font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
   }
 }
 

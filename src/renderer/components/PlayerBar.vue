@@ -1,172 +1,185 @@
 <template>
-  <div class="player">
-    <div class="progress-bar">
-      <vue-slider
-        ref="playerBarRef"
-        v-model="position"
-        :min="0"
-        tooltip-pos="hoverValue"
-        :tooltip="hoverText"
-        :max="duration"
-        :marks="marks"
-        :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
-        :process-style="{ background: 'var(--color-primary)' }"
-        :tooltip-style="{ background: 'var(--color-primary)' }"
-        :step-style="{
-          display: 'block',
-          height: '6px',
-          width: '6px',
-          transform: 'translateY(-2px)',
-          backgroundColor: 'var(--color-primary)',
-          opacy: 0.8
-        }"
-        :height="2"
-        :dot-size="10"
-        @update:hover-position="handleHover"
-      />
-    </div>
+  <section class="player" aria-label="播放控制">
     <div class="controls" @click="switchLyricPage">
       <div class="left">
-        <img :src="pic" loading="lazy" @click.stop="goToAlbum" />
+        <button
+          class="artwork-button"
+          type="button"
+          aria-label="打开歌词"
+          title="打开歌词"
+          :disabled="!currentTrack"
+          @click.stop="openLyrics"
+        >
+          <img :src="pic" :alt="currentTrack?.name || '歌曲封面'" />
+          <span class="artwork-hint"><svg-icon icon-class="arrow-up" /></span>
+        </button>
         <div class="track-info">
           <div
-            :class="['title', { haslist: hasListSource }]"
+            :class="['title', { haslist: hasListSource && currentTrack }]"
             :title="source"
-            @click.stop="hasListSource && goToList()"
+            @click.stop="currentTrack && hasListSource && goToList()"
           >
-            <span>{{ currentTrack?.name }}</span>
+            <span>{{ currentTrack?.name || '选择一首歌，开始聆听' }}</span>
           </div>
           <div class="albumAndLyric">
             <span v-for="(ar, index) in artists" :key="ar.id" class="artist">
-              <span :class="{ ar: ar.id !== 0 }" @click.stop="goToArtist(ar)">
-                {{ ar.name }}
-              </span>
-              <span v-if="index !== artists.length! - 1">, </span>
+              <span :class="{ ar: ar.id !== 0 }" @click.stop="goToArtist(ar)">{{ ar.name }}</span>
+              <span v-if="index !== artists.length - 1">, </span>
             </span>
+            <span v-if="!currentTrack">你的音乐，随时在这里</span>
           </div>
         </div>
+        <button-icon
+          class="like-button"
+          :class="{ active: isLiked }"
+          :title="$t('player.like')"
+          :aria-label="$t('player.like')"
+          :disabled="!currentTrack"
+          @click.stop="likeTrack"
+          ><svg-icon :icon-class="isLiked ? 'heart-solid' : 'heart'"
+        /></button-icon>
       </div>
       <div class="middle">
-        <div class="blank"></div>
-        <div class="container">
+        <div class="transport">
           <button-icon
-            :class="{ active: isLiked }"
-            :title="$t('player.like')"
-            @click.stop="likeTrack"
-          >
-            <svg-icon icon-class="heart-solid"></svg-icon>
-          </button-icon>
-          <button-icon v-show="!isPersonalFM" :title="$t('player.previous')" @click.stop="playPrev"
+            :class="{ active: shuffle }"
+            :title="$t('player.shuffle')"
+            :aria-label="$t('player.shuffle')"
+            :aria-pressed="shuffle"
+            :disabled="isPersonalFM || !currentTrack"
+            @click.stop="shuffle = !shuffle"
+            ><svg-icon icon-class="shuffle"
+          /></button-icon>
+          <button-icon
+            v-if="!isPersonalFM"
+            :title="$t('player.previous')"
+            :aria-label="$t('player.previous')"
+            :disabled="!currentTrack"
+            @click.stop="playPrev"
             ><svg-icon icon-class="previous"
           /></button-icon>
           <button-icon
-            v-show="isPersonalFM"
+            v-else
             :title="$t('player.moveToFMTrash')"
+            :aria-label="$t('player.moveToFMTrash')"
             @click.stop="moveToFMTrash"
             ><svg-icon icon-class="thumbs-down"
           /></button-icon>
           <button-icon
             class="play"
             :title="playing ? $t('player.pause') : $t('player.play')"
+            :aria-label="playing ? $t('player.pause') : $t('player.play')"
+            :disabled="!currentTrack"
             @click.stop="playOrPause"
-          >
-            <svg-icon :icon-class="playing ? 'pause' : 'play'"
+            ><svg-icon :icon-class="playing ? 'pause' : 'play'"
           /></button-icon>
-          <button-icon :title="$t('player.next')" @click.stop="playNext(isPersonalFM)"
+          <button-icon
+            :title="$t('player.next')"
+            :aria-label="$t('player.next')"
+            :disabled="!currentTrack"
+            @click.stop="playNext(isPersonalFM)"
             ><svg-icon icon-class="next"
           /></button-icon>
           <button-icon
-            :title="$t('player.osdLyrics')"
-            :class="{ active: show }"
-            @click.stop="show = !show"
-            ><svg-icon icon-class="osd-lyrics"
+            :class="{ active: repeatMode !== 'off' }"
+            :title="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
+            :aria-label="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
+            :disabled="isPersonalFM || !currentTrack"
+            @click.stop="switchRepeatMode"
+            ><svg-icon :icon-class="repeatMode === 'one' ? 'repeat-1' : 'repeat'"
           /></button-icon>
         </div>
-        <div class="blank"></div>
+        <div class="progress-row" @click.stop>
+          <span class="time">{{ formatTime(position) }}</span>
+          <div
+            class="progress-bar"
+            :class="{ 'is-disabled': !currentTrack }"
+            role="slider"
+            aria-label="播放进度"
+            :aria-valuenow="Math.round(position)"
+            :aria-valuemin="0"
+            :aria-valuemax="Math.round(duration)"
+            :aria-disabled="!currentTrack"
+            :aria-valuetext="formatTime(position) + ' / ' + formatTime(duration)"
+            :tabindex="currentTrack ? 0 : -1"
+            @keydown.left.prevent="position = Math.max(0, position - 5)"
+            @keydown.right.prevent="position = Math.min(duration, position + 5)"
+            @keydown.home.prevent="position = 0"
+            @keydown.end.prevent="position = duration"
+          >
+            <vue-slider
+              v-model="position"
+              :min="0"
+              :max="Math.max(duration, 1)"
+              :marks="marks"
+              :rail-style="{ backgroundColor: 'var(--open-player-rail)' }"
+              :process-style="{ background: 'var(--open-player-progress)' }"
+              :tooltip-style="{ background: 'var(--color-secondary-bg)' }"
+              :step-style="{
+                display: 'block',
+                height: '4px',
+                width: '4px',
+                backgroundColor: 'var(--color-primary)'
+              }"
+              :height="4"
+              :dot-size="10"
+              tooltip-pos="hoverValue"
+              :tooltip="hoverText"
+              @update:hover-position="handleHover"
+            />
+          </div>
+          <span class="time">{{ formatTime(currentTrack ? duration : 0) }}</span>
+        </div>
       </div>
       <div class="right">
         <button-icon
+          class="lyrics-button"
+          :class="{ active: showLyrics }"
+          title="打开歌词"
+          aria-label="显示歌词"
+          :aria-pressed="showLyrics"
+          :disabled="!currentTrack"
+          @click.stop="openLyrics"
+          ><svg-icon icon-class="lyric"
+        /></button-icon>
+        <button-icon
+          :title="$t('player.osdLyrics')"
+          :aria-label="$t('player.osdLyrics')"
+          :class="{ active: show }"
+          :aria-pressed="show"
+          @click.stop="show = !show"
+          ><svg-icon icon-class="osd-lyrics"
+        /></button-icon>
+        <button-icon
           :title="$t('player.nextUp')"
-          :class="{
-            active: route.name === 'next',
-            disabled: isPersonalFM
-          }"
+          :aria-label="$t('player.nextUp')"
+          :class="{ active: route.name === 'next' }"
+          :disabled="isPersonalFM"
           @click.stop="goToNextTracksPage"
           ><svg-icon icon-class="list"
         /></button-icon>
-        <button-icon
-          :class="{
-            active: repeatMode !== 'off',
-            disabled: isPersonalFM
-          }"
-          :title="repeatMode === 'one' ? $t('player.repeatTrack') : $t('player.repeat')"
-          @click.stop="switchRepeatMode"
-        >
-          <svg-icon v-show="repeatMode !== 'one'" icon-class="repeat" />
-          <svg-icon v-show="repeatMode === 'one'" icon-class="repeat-1" />
-        </button-icon>
-        <button-icon
-          :class="{ active: shuffle, disabled: isPersonalFM }"
-          :title="$t('player.shuffle')"
-          @click.stop="shuffle = !shuffle"
-          ><svg-icon icon-class="shuffle"
-        /></button-icon>
-        <div class="volume" :class="{ 'is-dragging': isDragging }" @wheel="updateVolume">
-          <div class="volume-slider" @click.stop>
-            <slider-vue
-              v-model="volume"
-              :min="0"
-              :max="1"
-              :interval="0.01"
-              direction="btt"
-              :tooltip-formatter="formatVolume"
-              :tooltip-style="{
-                backgroundColor: 'var(--color-primary)',
-                borderColor: 'var(--color-primary)'
-              }"
-              :rail-style="{
-                width: '4px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                borderRadius: '2px',
-                backgroundColor: 'rgba(128, 128, 128, 0.18)'
-              }"
-              :process-style="{
-                width: '4px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                borderRadius: '2px',
-                background: 'var(--color-primary)'
-              }"
-              :dot-style="{ display: 'none' }"
-              :width="24"
-              :height="130"
-              :dot-size="12"
-              :silent="true"
-              @drag-start="isDragging = true"
-              @drag-end="isDragging = false"
-            ></slider-vue>
-          </div>
-          <button-icon @click.stop="toggleMute"
-            ><svg-icon v-show="volume > 0.5" icon-class="volume" />
-            <svg-icon v-show="volume === 0" icon-class="volume-mute" />
-            <svg-icon v-show="volume <= 0.5 && volume !== 0" icon-class="volume-half"
-          /></button-icon>
+        <div class="volume" @wheel="updateVolume" @click.stop>
+          <button-icon title="静音" aria-label="静音" @click.stop="toggleMute">
+            <svg-icon
+              :icon-class="volume === 0 ? 'volume-mute' : volume > 0.5 ? 'volume' : 'volume-half'"
+            />
+          </button-icon>
+          <input
+            v-model.number="volume"
+            aria-label="音量"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :title="formatVolume + '%'"
+          />
         </div>
-        <button-icon
-          class="lyrics-button"
-          title="歌词"
-          style="margin-left: 12px"
-          @click.stop="showLyrics = !showLyrics"
-          ><svg-icon icon-class="arrow-up"
-        /></button-icon>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import SliderVue from 'vue-3-slider-component'
 import VueSlider from './VueSlider.vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player'
@@ -204,11 +217,7 @@ const {
   lyricOffset
 } = storeToRefs(playerStore)
 
-// const playerBarRef = ref()
-const hoverX = ref('0')
 const hoverText = ref('')
-
-const isDragging = ref(false)
 
 const osdLyric = useOsdLyricStore()
 const { show } = storeToRefs(osdLyric)
@@ -222,9 +231,8 @@ const { showLyrics, enableScrolling } = storeToRefs(stateStore)
 const pluginMusicStore = usePluginMusic()
 
 const formatTime = (time: number) => {
-  const minutes = Math.floor(time / 60)
-  const remainingSeconds = Math.round(time % 60)
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  const seconds = Math.max(0, Math.floor(Number.isFinite(time) ? time : 0))
+  return Math.floor(seconds / 60) + ':' + (seconds % 60).toString().padStart(2, '0')
 }
 
 const artists = computed(() => {
@@ -270,18 +278,23 @@ const likeTrack = () => {
 
 const goToArtist = (artist: Artist) => {
   if (!artist) return
-  router.push(`/artist/${artist.pluginId}/${JSON.stringify(artist.sourceContext)}`)
+  router.push({
+    name: 'ArtistPage',
+    params: {
+      pluginId: artist.pluginId,
+      sourceContext: JSON.stringify(artist.sourceContext)
+    }
+  })
 }
 
-const goToAlbum = () => {
-  const album = currentTrack.value?.album
-  if (!album || album.id === 0) return
-  router.push(`/album/${album.pluginId}/${JSON.stringify(album.sourceContext)}`)
+const openLyrics = () => {
+  if (!currentTrack.value) return
+  showLyrics.value = true
 }
 
 const switchLyricPage = () => {
   const enable = general.value.clickToLyric
-  if (!enable) return
+  if (!enable || !currentTrack.value) return
   showLyrics.value = !showLyrics.value
 }
 
@@ -334,170 +347,233 @@ watch(showLyrics, (value) => {
 
 <style scoped lang="scss">
 .player {
+  --open-player-rail: #4d4d4d;
+  --open-player-progress: #dedede;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  border-top: 1px solid var(--color-border);
-  backdrop-filter: saturate(180%) blur(30px);
-  background-color: var(--color-navbar-bg);
+  inset: auto 0 0;
+  height: var(--open-player-height, 96px);
+  background: var(--color-body-bg);
+  color: var(--color-text);
   z-index: 20;
 }
-:deep(.progress-bar) {
-  margin-top: -6px !important;
-  margin-bottom: -6px !important;
-  width: 100%;
+.controls {
+  height: 100%;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.4fr) minmax(190px, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+.left,
+.right,
+.transport,
+.volume,
+.progress-row {
+  display: flex;
+  align-items: center;
+}
+.left {
+  min-width: 0;
+  gap: 14px;
+}
+.artwork-button {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
   position: relative;
-
-  .progress-tooltip {
-    position: absolute;
-    top: 0;
-    font-size: 14px;
-    left: v-bind(hoverX);
-    color: white;
+  overflow: hidden;
+  border-radius: 5px;
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-
-  .progress-tooltip::before {
-    content: attr(data-tip);
-    background-color: rgb(from var(--color-primary) r g b / 90%);
+  .artwork-hint {
     position: absolute;
-    border-radius: 5px;
-    top: -36px;
-    padding: 3px 8px;
-    white-space: nowrap;
-    transform: translate(-50%, 0);
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 160ms ease-out;
+    .svg-icon {
+      width: 22px;
+      height: 22px;
+      color: #fff;
+    }
   }
-
-  .progress-tooltip::after {
-    content: '';
-    position: absolute;
-    border: 8px solid transparent;
-    border-top-color: rgb(from var(--color-primary) r g b / 90%);
-    transform: translate(-50%, -81%);
+  &:hover .artwork-hint,
+  &:focus-visible .artwork-hint {
+    opacity: 1;
   }
 }
-
-.controls {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  height: 100%;
-  padding: 0 44px;
-  align-items: center;
-
-  .left {
-    display: flex;
-    align-items: center;
-    img {
-      border-radius: 5px;
-      height: 46px;
-      width: 46px;
-      object-fit: cover;
-      box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.16);
-      cursor: pointer;
-    }
-    .track-info {
-      margin-left: 16px;
-    }
-    .track-info .title {
-      font-weight: 600;
-      opacity: 0.88;
-      margin-bottom: 2px;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-      line-clamp: 1;
-      overflow: hidden;
-      word-break: break-all;
-    }
-    .track-info .haslist {
-      cursor: pointer;
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-    .albumAndLyric {
-      font-size: 12px;
-      opacity: 0.66;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-      line-clamp: 1;
-      overflow: hidden;
-      word-break: break-all;
-      .artist .ar {
-        cursor: pointer;
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-    }
+.track-info {
+  min-width: 0;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.haslist,
+.ar {
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
   }
-  .middle {
-    display: flex;
-    .container {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0 8px;
-
-      .play {
-        .svg-icon {
-          width: 24px;
-          height: 24px;
-        }
-      }
-    }
-    .active .svg-icon {
-      color: var(--color-primary);
-    }
+}
+.albumAndLyric {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.like-button {
+  flex-shrink: 0;
+  margin-left: 3px;
+}
+.middle {
+  min-width: 0;
+}
+.transport {
+  gap: 14px;
+  justify-content: center;
+  height: 40px;
+}
+.player .button-icon {
+  flex-shrink: 0;
+  margin: 0;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 50%;
+  :deep(.svg-icon) {
+    width: 16px;
+    height: 16px;
+    color: var(--color-secondary);
+  }
+  &:hover :deep(.svg-icon) {
+    color: var(--color-text);
+  }
+  &.active :deep(.svg-icon) {
+    color: var(--color-primary);
+  }
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+.player .play {
+  width: 34px;
+  height: 34px;
+  background: var(--color-text);
+  :deep(.svg-icon) {
+    width: 19px;
+    height: 19px;
+    color: var(--color-body-bg);
+  }
+  &:hover {
+    transform: scale(1.05);
+    background: var(--color-text);
+  }
+  &:hover :deep(.svg-icon) {
+    color: var(--color-body-bg);
+  }
+}
+.progress-row {
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+.progress-bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 8px;
+  &:hover,
+  &:focus-visible {
+    --open-player-progress: var(--color-primary);
+  }
+  &.is-disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+}
+.time {
+  color: var(--color-secondary);
+  font-size: 11px;
+  min-width: 29px;
+  font-variant-numeric: tabular-nums;
+}
+.time:last-child {
+  text-align: right;
+}
+.right {
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+}
+.volume {
+  gap: 5px;
+  input {
+    width: 76px;
+    height: 4px;
+    margin: 0;
+    accent-color: var(--color-text);
+    cursor: pointer;
+  }
+  input:hover {
+    accent-color: var(--color-primary);
+  }
+}
+.artwork-button:focus-visible,
+.player .button-icon:focus-visible,
+.progress-bar:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+@media (max-width: 1080px) {
+  .controls {
+    grid-template-columns: minmax(160px, 1fr) minmax(240px, 1.4fr) 166px;
+    gap: 12px;
+    padding-inline: 16px;
+  }
+  .volume input {
+    width: 45px;
   }
   .right {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-
-    .volume {
-      position: relative;
-      .volume-slider {
-        display: none;
-        width: 36px;
-        height: 130px;
-        position: absolute;
-        border-radius: 6px;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: var(--color-secondary-bg);
-        z-index: 10;
-        font-size: 10px;
-        padding: 12px 0;
-        box-sizing: content-box;
-      }
-      &:hover .volume-slider,
-      &.is-dragging .volume-slider {
-        display: block;
-      }
-    }
-
-    .active .svg-icon {
-      color: var(--color-primary);
-    }
+    gap: 0;
   }
 }
-.blank {
-  flex-grow: 1;
-}
-
-.button-icon.disabled {
-  cursor: default;
-  opacity: 0.48;
-  &:hover {
-    background: none;
+@media (max-width: 820px) {
+  .controls {
+    grid-template-columns: minmax(150px, 1fr) minmax(240px, 1.5fr) 120px;
+    gap: 8px;
   }
-  &:active {
-    transform: unset;
+  .volume input,
+  .like-button {
+    display: none;
+  }
+  .transport {
+    gap: 10px;
+  }
+  .left {
+    gap: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .player *,
+  .player *::before,
+  .player *::after {
+    transition: none !important;
   }
 }
 </style>

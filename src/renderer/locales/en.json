@@ -1,4 +1,15 @@
 {
+  "openMusic": {
+    "navigation": "Main navigation",
+    "yourLibrary": "Your Library",
+    "makeItYours": "Make room for your music",
+    "libraryHint": "Sign in to a music service or add local music. Your playlists will appear here.",
+    "openLibrary": "Open your library",
+    "back": "Go back",
+    "forward": "Go forward",
+    "searchPlaceholder": "What do you want to play?",
+    "account": "Account menu"
+  },
   "nav": {
     "home": "Home",
     "search": "Search",
@@ -365,6 +376,7 @@
       "light": "Light",
       "dark": "Dark",
       "accent": "Accent Color",
+      "green": "Green",
       "blue": "Blue",
       "purple": "Purple",
       "orange": "Orange",
@@ -427,14 +439,14 @@
         "desc": "Enable a transparent gradient effect on the top and bottom edges of the lyrics page"
       },
       "staticTime": {
-        "text": "Mouse Hover Timeout",
-        "desc": "After locking, lyrics fade after this duration (ms),",
+        "text": "Unlock Button Hide Delay",
+        "desc": "When locked, hide the unlock button after the pointer rests for this duration (ms). Lyrics stay visible.",
         "desc2": "set to 0 to disable this feature, not effective on Linux"
       },
       "showButtonWhenLock": {
         "text": "Show Unlock Button When Locked",
         "desc": "Enabling this will show the unlock button when the desktop lyrics window is locked",
-        "desc2": "and enable the mouse hover to reduce window transparency feature"
+        "desc2": "The button can hide when the pointer rests and reappear on movement. Lyrics always stay visible."
       },
       "lyricZoom": "Zoom The Playing Lyric",
       "lyricBold": "Bold Text"

@@ -2,8 +2,8 @@
 const dotenv = require('dotenv')
 
 const baseConfig = {
-  productName: 'VutronMusic',
-  appId: 'io.github.stark81.VutronMusic',
+  productName: 'Open Music',
+  appId: 'io.local.openmusic',
   asar: true,
   asarUnpack: [
     '**/node_modules/sharp/**/*',

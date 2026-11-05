@@ -14,22 +14,26 @@
   --color-wbw-text: rgba(0, 0, 0, 0.75);
   --color-wbw-text-played: rgba(0, 0, 0, 0.95);
   --color-border: rgba(0, 0, 0, 0.2);
+  --color-primary-contrast: #ffffff;
+  --color-app-bg: #e8e8e8;
 }
 
 [data-theme='dark'] {
-  --color-body-bg: #222222;
+  --color-body-bg: #121212;
   --color-text: #ffffff;
   --bg-alpha: 15%;
-  --color-secondary: #7a7a7b;
-  --color-secondary-bg: #323232;
-  --color-navbar-bg: rgba(34, 34, 34, 0.86);
+  --color-secondary: #b3b3b3;
+  --color-secondary-bg: #1f1f1f;
+  --color-navbar-bg: #121212;
   --color-primary-bg-for-transparent: rgba(255, 255, 255, 0.12);
   --color-secondary-bg-for-transparent: rgba(255, 255, 255, 0.08);
   --color-wbw-text-unplay: rgba(255, 255, 255, 0.28);
   --color-full-text-unplay: rgba(255, 255, 255, 0.48);
   --color-wbw-text: rgba(255, 255, 255, 0.75);
   --color-wbw-text-played: rgba(255, 255, 255, 0.95);
-  --color-border: rgba(255, 255, 255, 0.2);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-primary-contrast: #000000;
+  --color-app-bg: #000000;
 }
 
 #app,

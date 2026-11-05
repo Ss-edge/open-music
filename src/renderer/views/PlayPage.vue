@@ -3,7 +3,12 @@
     <transition name="slide-up">
       <div
         v-if="showLyrics"
+        ref="lyricPanelRef"
         class="player-container"
+        role="dialog"
+        aria-modal="true"
+        aria-label="歌词播放器"
+        tabindex="-1"
         @mouseenter="hover = true"
         @mouseleave="hover = false"
       >
@@ -15,11 +20,18 @@
           <button-icon
             v-show="tabs[tabIdx] !== 'comment'"
             class="player-button theme-button"
+            title="播放器主题"
+            aria-label="播放器主题"
             @click="setThemeModal = !setThemeModal"
           >
             <SvgIcon icon-class="theme" />
           </button-icon>
-          <button-icon class="player-button close-button" @click="showLyrics = !showLyrics">
+          <button-icon
+            class="player-button close-button"
+            title="收起歌词 (Esc)"
+            aria-label="收起歌词"
+            @click="showLyrics = false"
+          >
             <SvgIcon icon-class="arrow-down" />
           </button-icon>
           <button-icon
@@ -97,7 +109,7 @@ import { useNormalStateStore } from '../store/state'
 import { usePlayerStore } from '../store/player'
 import { usePlayerThemeStore } from '../store/playerTheme'
 import { storeToRefs } from 'pinia'
-import { ref, provide, computed, watch } from 'vue'
+import { ref, provide, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 const playPageContextMenu = ref<InstanceType<typeof ContextMenu>>()
 
@@ -125,6 +137,61 @@ const showSenseSelector = ref(false)
 const tabIdx = ref(0)
 const titleIdx = ref(0)
 const hover = ref(false)
+const lyricPanelRef = ref<HTMLElement>()
+let previousFocus: HTMLElement | null = null
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!showLyrics.value || !['Escape', 'Tab'].includes(event.key) || event.defaultPrevented) return
+  if (
+    setThemeModal.value ||
+    setConvolverModal.value ||
+    setPitchModal.value ||
+    setFontModal.value ||
+    setPlaybackRateModal.value ||
+    setSaveThemeModal.value ||
+    backgroundModal.value.show ||
+    showSenseSelector.value ||
+    addTrackToPlaylistModal.value.show
+  )
+    return
+  if (event.key === 'Tab') {
+    const panel = lyricPanelRef.value
+    if (!panel) return
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(
+      (element) =>
+        element.getClientRects().length > 0 && element.getAttribute('aria-hidden') !== 'true'
+    )
+    const first = focusable[0]
+    const last = focusable.at(-1)
+    const active = document.activeElement
+    if (!first || !last) {
+      event.preventDefault()
+      panel.focus()
+    } else if (
+      event.shiftKey &&
+      (active === first || active === panel || !panel.contains(active))
+    ) {
+      event.preventDefault()
+      last.focus()
+    } else if (
+      !event.shiftKey &&
+      (active === last || active === panel || !panel.contains(active))
+    ) {
+      event.preventDefault()
+      first.focus()
+    }
+    return
+  }
+  event.preventDefault()
+  showLyrics.value = false
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
 const theme = computed(() => {
   let appearance = activeBG.value.color
@@ -171,8 +238,15 @@ const getIcon = () => {
   }
 }
 
-watch(showLyrics, () => {
+watch(showLyrics, async (visible) => {
   tabIdx.value = 0
+  if (visible) {
+    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    lyricPanelRef.value?.focus?.()
+  } else {
+    previousFocus?.focus()
+  }
 })
 
 watch(showSenseSelector, () => {
@@ -190,31 +264,35 @@ watch(
 <style scoped lang="scss">
 .player-container {
   position: fixed;
+  top: var(--open-titlebar-height, 0px);
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - var(--open-titlebar-height, 0px));
   z-index: 20;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color, var(--color-body-bg));
+  outline: none;
 }
 
 .buttons-icons {
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
   color: var(--color-text);
-  opacity: 0;
-  transition: opacity 0.3s;
+  opacity: 1;
+  transition: opacity 0.2s;
 
   .theme-button {
     position: fixed;
-    top: 24px;
-    right: 74px;
+    top: calc(var(--open-titlebar-height, 0px) + 16px);
+    right: 24px;
   }
 
   .close-button {
     position: fixed;
-    top: 24px;
-    right: 24px;
+    top: calc(var(--open-titlebar-height, 0px) + 16px);
+    left: 24px;
   }
 
   .sense-button {
@@ -237,14 +315,17 @@ watch(
 
   .player-button {
     z-index: 300;
-    border-radius: 0.75rem;
+    border-radius: 50%;
     height: 44px;
     width: 44px;
     display: flex;
     justify-content: center;
     align-items: center;
-    opacity: 0.48;
-    transition: 0.2s;
+    opacity: 0.78;
+    pointer-events: auto;
+    transition:
+      background 0.2s,
+      opacity 0.2s;
     -webkit-app-region: no-drag;
 
     .svg-icon {
@@ -256,6 +337,11 @@ watch(
     &:hover {
       background: var(--color-secondary-bg-for-transparent);
       opacity: 0.88;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 3px;
     }
   }
 }

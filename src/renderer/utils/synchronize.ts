@@ -163,8 +163,8 @@ watch(
     }
 
     title.value = value
-      ? `${currentTrack.value?.name} · ${currentTrack.value?.artists[0]?.name} - VutronMusic`
-      : 'VutronMusic'
+      ? `${currentTrack.value?.name} · ${currentTrack.value?.artists[0]?.name} - Open Music`
+      : 'Open Music'
   },
   { immediate: true }
 )
@@ -206,8 +206,8 @@ watch(
     }
 
     title.value = playing.value
-      ? `${value?.name} · ${value?.artists[0]?.name} - VutronMusic`
-      : 'VutronMusic'
+      ? `${value?.name} · ${value?.artists[0]?.name} - Open Music`
+      : 'Open Music'
   },
   {
     immediate: true

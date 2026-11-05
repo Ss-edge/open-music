@@ -23,8 +23,8 @@ declare global {
  * 前置条件：
  *   1. 已执行构建（需要 `dist/main/index.js` 与 `dist/preload/index.js`）；
  *   2. `node_modules/electron` 已下载二进制（`yarn install` 的 postinstall）；
- *   3. 本机 41830 端口空闲 —— 主进程在端口被占用时会 fail-closed 直接退出，
- *      因此运行前请先关闭正在运行的 VutronMusic。
+ *   3. 本机 41831 端口空闲 —— 主进程在端口被占用时会 fail-closed 直接退出，
+ *      因此运行前请先关闭正在运行的 Open Music。
  *
  * 使用独立的 --user-data-dir，避免污染真实用户数据。
  */
@@ -38,7 +38,11 @@ test.beforeAll(async () => {
   appElectron = await electron.launch({
     // --no-sandbox 与 `vite dev`（vite-plugin-electron）启动 Electron 时保持一致，
     // 否则在受限环境下 Chromium sandbox 初始化失败、GPU 进程退出导致应用立即关闭。
-    args: ['dist/main/index.js', '--no-sandbox', `--user-data-dir=${userDataDir}`],
+    args: [
+      'tests/electron-test-launcher.cjs',
+      '--no-sandbox',
+      `--test-user-data-dir=${userDataDir}`
+    ],
     locale: 'en-US',
     colorScheme: 'light',
     env: {
@@ -47,7 +51,7 @@ test.beforeAll(async () => {
     }
   })
   appWindow = await appElectron.firstWindow()
-  await appWindow.waitForEvent('load')
+  await appWindow.waitForLoadState('domcontentloaded')
 })
 
 test.afterAll(async () => {

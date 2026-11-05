@@ -1,4 +1,15 @@
 {
+  "openMusic": {
+    "navigation": "主要導覽",
+    "yourLibrary": "你的音樂庫",
+    "makeItYours": "收藏，讓音樂屬於你",
+    "libraryHint": "登入音樂平台，或加入本機音樂。你的歌單會顯示在這裡。",
+    "openLibrary": "開啟音樂庫",
+    "back": "返回",
+    "forward": "前進",
+    "searchPlaceholder": "今天想聽點什麼？",
+    "account": "帳號選單"
+  },
   "nav": {
     "home": "首頁",
     "search": "搜尋",
@@ -364,6 +375,7 @@
       "light": "淺色",
       "dark": "深色",
       "accent": "強調色",
+      "green": "綠色",
       "blue": "藍色",
       "purple": "紫色",
       "orange": "橙色",
@@ -426,14 +438,14 @@
         "desc": "歌詞頁上下邊緣啟用透明漸層的效果"
       },
       "staticTime": {
-        "text": "滑鼠停留時長",
-        "desc": "鎖定後，滑鼠停留該時長後（毫秒）降低視窗透明度，",
+        "text": "解鎖按鈕自動隱藏時間",
+        "desc": "鎖定後，滑鼠靜止該時長後（毫秒）隱藏解鎖按鈕，歌詞保持可見。",
         "desc2": "設置為0則表示不啟用該功能，Linux系統下無效"
       },
       "showButtonWhenLock": {
         "text": "鎖定後顯示解鎖按鈕",
         "desc": "啟用後，鎖定桌面歌詞視窗時仍然顯示解鎖按鈕",
-        "desc2": "並啟用鼠標停留降低視窗透明度功能"
+        "desc2": "滑鼠靜止後可自動隱藏按鈕，移動滑鼠後再次顯示，歌詞始終可見"
       },
       "lyricZoom": "放縮當前播放的歌詞",
       "lyricBold": "字體加粗"

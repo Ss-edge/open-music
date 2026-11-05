@@ -7,19 +7,23 @@
       :options="options"
     />
     <div class="search-container">
-      <div
+      <button
         ref="searchIconRef"
+        type="button"
         class="search-icon"
         :class="{ active: showInput }"
+        :aria-label="placeholder"
+        :title="placeholder"
         @click="toggleInput"
         ><svg-icon icon-class="search"
-      /></div>
+      /></button>
       <input
         ref="inputRef"
         v-model="keywords"
         type="search"
         class="search-input"
         :placeholder="placeholder"
+        :aria-label="placeholder"
         :style="{ width: showInputWidth + 'px', padding: showPadding }"
         @keydown.enter="doKeydownEnter"
       />
@@ -99,6 +103,7 @@ const doKeydownEnter = () => {
   $emit('keydownEnter', keywords.value, plugin.value)
   if (!props.clearKeywords) return
   keywords.value = ''
+  if (props.showInputInitially) return
   inputRef.value?.blur()
   showInput.value = false
   showInputWidth.value = 0
@@ -108,6 +113,9 @@ const doKeydownEnter = () => {
 const toggleInput = () => {
   if (props.showInputInitially) {
     showInput.value = true
+    showInputWidth.value = props.inputWidth
+    showPadding.value = '4px'
+    inputRef.value?.focus()
     return
   }
   showInput.value = !showInput.value
@@ -128,6 +136,7 @@ const handleOutside = (e: MouseEvent) => {
   if (!containerRef.value?.contains(e.target as Node) && !keywords.value) {
     if (customSelectRef.value?.isTargetInside(e.target as Node)) return
     enableScrolling.value = true
+    if (props.showInputInitially) return
     showInput.value = false
     showInputWidth.value = 0
     showPadding.value = '0px'
@@ -175,6 +184,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  color: inherit;
   width: 32px;
   height: 32px;
   cursor: pointer;

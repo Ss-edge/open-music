@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-05T04:02:41.054Z",
+  "title": "Design System: Open Music",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "playback-artwork",
+        "value": "0 18px 48px rgba(0, 0, 0, 0.28)",
+        "purpose": "Existing focused playback artwork elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "shell-state",
+        "value": "150ms",
+        "purpose": "Navigation color and background state changes."
+      },
+      {
+        "name": "artwork-rotation",
+        "value": "20s linear infinite",
+        "purpose": "Optional rotating artwork; paused with playback and suppressed by reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-sidebar",
+        "value": "1000px"
+      },
+      {
+        "name": "icon-sidebar",
+        "value": "820px"
+      },
+      {
+        "name": "compact-invitation-height",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Playback action",
+      "kind": "button",
+      "description": "Primary play action in the focused playback view.",
+      "html": "<button class=\"ds-play\" aria-label=\"播放\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M7 4v16l14-8Z\"/></svg></button>",
+      "css": ".ds-play{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:var(--color-primary,rgba(30,215,96,1));color:#000;cursor:pointer}.ds-play:hover{transform:scale(1.04)}.ds-play:focus-visible{outline:2px solid var(--color-text,#fff);outline-offset:3px}.ds-play:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Permanent search",
+      "kind": "input",
+      "description": "Persistent source-aware search field in the application toolbar.",
+      "html": "<input class=\"ds-search\" type=\"search\" aria-label=\"搜索音乐\" placeholder=\"今天想听点什么？\"/>",
+      "css": ".ds-search{height:44px;padding:0 18px;border:0;border-radius:24px;background:var(--color-secondary-bg,#1f1f1f);color:var(--color-text,#fff);font:13px 'Segoe UI',sans-serif}.ds-search::placeholder{color:var(--color-secondary,#b3b3b3)}.ds-search:hover{background:var(--color-secondary-bg-for-transparent,rgba(255,255,255,.08))}.ds-search:focus-visible{outline:2px solid var(--color-text,#fff);outline-offset:-2px}"
+    },
+    {
+      "name": "Library navigation",
+      "kind": "nav",
+      "description": "Labeled current-page navigation inside the persistent sidebar.",
+      "html": "<button class=\"ds-nav\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"m3 10 9-7 9 7v10H15v-6H9v6H3Z\"/></svg><span>首页</span></button>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:16px;min-height:44px;padding:10px 12px;border:0;border-radius:6px;background:var(--color-secondary-bg,#1f1f1f);color:var(--color-text,#fff);font:600 14px 'Segoe UI',sans-serif;cursor:pointer;transition:background-color 150ms,color 150ms}.ds-nav:hover{background:var(--color-secondary-bg-for-transparent,rgba(255,255,255,.08))}.ds-nav:focus-visible{outline:2px solid var(--color-text,#fff);outline-offset:3px}"
+    },
+    {
+      "name": "Selected filter",
+      "kind": "chip",
+      "description": "Selected discovery filter uses the existing inverse text surface.",
+      "html": "<button class=\"ds-filter\" aria-pressed=\"true\">全部</button>",
+      "css": ".ds-filter{padding:7px 16px;border:0;border-radius:24px;background:var(--color-text,#fff);color:var(--color-primary-contrast,#000);font:13px 'Segoe UI',sans-serif;cursor:pointer}.ds-filter:hover{filter:brightness(.92)}.ds-filter:focus-visible{outline:2px solid var(--color-text,#fff);outline-offset:3px}"
+    },
+    {
+      "name": "Empty library invitation",
+      "kind": "card",
+      "description": "Real recovery guidance while no saved playlists are available.",
+      "html": "<section class=\"ds-invitation\"><strong>收藏，让音乐属于你</strong><p>登录音乐平台，或添加本地音乐。你的歌单会显示在这里。</p><button>打开音乐库</button></section>",
+      "css": ".ds-invitation{max-width:208px;padding:18px 14px;border-radius:8px;background:var(--color-secondary-bg,#1f1f1f);color:var(--color-text,#fff);font:14px 'Segoe UI',sans-serif}.ds-invitation p{margin:10px 0 18px;color:var(--color-secondary,#b3b3b3);font-size:12px;line-height:1.7}.ds-invitation button{padding:7px 16px;border:0;border-radius:20px;background:var(--color-text,#fff);color:var(--color-primary-contrast,#000);font:600 12px 'Segoe UI',sans-serif;cursor:pointer}.ds-invitation button:hover{filter:brightness(.92)}.ds-invitation button:focus-visible{outline:2px solid var(--color-text,#fff);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Spotify shell, NetEase playback and lyrics",
+    "overview": "Use the confirmed references as a direction for a working desktop music player: a quiet, dense library shell around music artwork, with a separate, spacious playback and lyric view. The interface uses tonal panels, restrained green signals, strong headings, and compact controls.",
+    "keyCharacteristics": [
+      "Persistent navigation and transport around a separately scrolling content panel.",
+      "One selectable accent; dark is the fresh-install default, with light, automatic, and custom appearance retained.",
+      "Album artwork and timed lyric state drive the listening view."
+    ],
+    "rules": [
+      {
+        "name": "The Theme Variable Rule",
+        "body": "New shell surfaces use --color-* variables; palette values in this document describe defaults. Playback backgrounds and lyric foregrounds also have their own existing theme settings.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do preserve the fixed navigation, native caption, independent content scroll, and persistent transport.",
+      "Do use shared theme variables and retain saved light, automatic, accent, and playback preferences.",
+      "Do preserve keyboard focus, reduced motion, readable metadata, and artwork-to-lyrics access.",
+      "Do render real source content or an honest loading/empty state."
+    ],
+    "donts": [
+      "Don't extend the shell palette into a replacement for configurable playback or desktop-lyric themes.",
+      "Don't turn transient test tracks, loading copy, or unavailable remote recommendations into house content.",
+      "Don't infer mobile support or verified contrast across every custom background from these desktop screenshots."
+    ]
+  }
+}

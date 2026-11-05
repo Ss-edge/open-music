@@ -101,7 +101,7 @@ Renderer → IPC invoke('pluginMusic:call')
 ### 4. Fastify 服务器（在线 API 代理）
 
 ```
-Renderer/Main ──HTTP──→ Fastify (端口 40001/41830)
+Renderer/Main ──HTTP──→ Fastify (端口 40002/41831)
   ├─ /netease/* → 网易云 API
   └─ /http/* → 通用 HTTP 代理
 ```

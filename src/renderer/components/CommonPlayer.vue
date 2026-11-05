@@ -11,7 +11,7 @@
           }"
         >
           <div class="img-wrap">
-            <img :src="pic" loading="lazy" />
+            <img :src="pic" :alt="currentTrack?.name || '歌曲封面'" />
           </div>
           <div class="shadow" :style="{ backgroundImage: `url(${pic})` }"></div>
         </div>
@@ -28,7 +28,13 @@
               <div class="subtitle">
                 <router-link
                   v-if="artist && String(artist.id) !== String(0)"
-                  :to="`/artist/${artist.pluginId}/${JSON.stringify(artist.sourceContext)}`"
+                  :to="{
+                    name: 'ArtistPage',
+                    params: {
+                      pluginId: artist.pluginId,
+                      sourceContext: JSON.stringify(artist.sourceContext)
+                    }
+                  }"
                   @click="showLyrics = !showLyrics"
                   >{{ artist.name }}
                 </router-link>
@@ -37,7 +43,13 @@
                   -
                   <router-link
                     v-if="album && String(album.id) !== String(0)"
-                    :to="`/album/${album.pluginId}/${JSON.stringify(album.sourceContext)}`"
+                    :to="{
+                      name: 'album',
+                      params: {
+                        pluginId: album.pluginId,
+                        sourceContext: JSON.stringify(album.sourceContext)
+                      }
+                    }"
                     @click="showLyrics = !showLyrics"
                     >{{ album.name }}
                   </router-link>
@@ -74,7 +86,7 @@
               <vue-slider
                 v-model="position"
                 :min="0"
-                :max="duration"
+                :max="Math.max(duration, 1)"
                 :dot-size="12"
                 :height="4"
                 :marks="marks"
@@ -84,7 +96,7 @@
                   width: '8px',
                   transform: 'translateY(-2px)',
                   backgroundColor: 'var(--color-text)',
-                  opacy: 0.8
+                  opacity: 0.8
                 }"
                 :rail-style="{ backgroundColor: 'rgba(128, 128, 128, 0.18)' }"
                 :process-style="{ backgroundColor: 'var(--color-text)', opacity: 0.8 }"
@@ -114,7 +126,8 @@
               /></button-icon>
               <button-icon
                 id="play"
-                :title="$t(playing ? 'player.play' : 'player.pause')"
+                :title="$t(playing ? 'player.pause' : 'player.play')"
+                :aria-label="$t(playing ? 'player.pause' : 'player.play')"
                 @click="playOrPause"
                 ><svg-icon :icon-class="playing ? 'pause' : 'play'"
               /></button-icon>
@@ -153,16 +166,16 @@
         <LyricPage
           v-if="show === 'fullLyric'"
           :text-align="isMobile ? 'center' : align"
-          :container-width="isMobile ? '50vw' : '90%'"
-          :container-margin="isMobile ? '0 auto' : '0 0 0 auto'"
+          :container-width="isMobile ? '85vw' : '100%'"
+          container-margin="0 auto"
           :hover="hover"
           :offset-padding="isMobile ? '10vw' : '0'"
-          :margin="isMobile ? '4vh' : '40vh'"
+          :margin="isMobile ? '12vh' : '34vh'"
         />
         <Comment
-          v-else
-          :id="currentTrack!.id"
-          :plugin="currentTrack!.pluginId"
+          v-else-if="currentTrack"
+          :id="currentTrack.id"
+          :plugin="currentTrack.pluginId"
           :source-context="currentTrack?.sourceContext || {}"
           type="track"
           :style="{
@@ -353,339 +366,269 @@ const showContextMenu = (e: MouseEvent): void => {
 }
 
 const aspect = window.matchMedia('(max-aspect-ratio: 9/10)')
-
-aspect.addEventListener('change', (e) => (isMobile.value = e.matches))
+const updateAspect = (event: MediaQueryListEvent) => {
+  isMobile.value = event.matches
+}
+aspect.addEventListener('change', updateAspect)
 
 onMounted(() => {
   isMobile.value = aspect.matches
 })
 
 onBeforeUnmount(() => {
-  aspect.removeEventListener('change', (e) => (isMobile.value = e.matches))
+  aspect.removeEventListener('change', updateAspect)
 })
 </script>
 
 <style scoped lang="scss">
 .play-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
+  position: absolute;
+  inset: 0;
   z-index: 100;
   color: var(--color-text);
   overflow: hidden;
-  display: flex;
+  box-sizing: border-box;
+  padding: 76px 8vw 28px;
 }
-
 .lyric-container {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  padding: 0 calc((50vw - min(50vh, 33.33vw)) / 2.3);
-
-  .left-side {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.35s;
-    z-index: 10;
-
-    .cover {
-      position: relative;
-      .img-wrap img {
-        height: min(50vh, 33.33vw);
-        width: min(50vh, 33.33vw);
-        user-select: none;
-        object-fit: cover;
-        border-radius: 0.75rem;
-      }
-      .shadow {
-        position: absolute;
-        top: 12px;
-        height: min(50vh, 33.33vw);
-        width: min(50vh, 33.33vw);
-        filter: blur(16px) opacity(0.6);
-        transform: scale(0.92, 0.96);
-        z-index: -1;
-        background-size: cover;
-        border-radius: 0.75em;
-      }
-    }
-
-    .cover.circle,
-    .cover.rotate {
-      img,
-      .shadow {
-        border-radius: 50%;
-        will-change: transform;
-      }
-    }
-
-    .cover.rotate .img-wrap {
-      animation: circleRotate 15s linear infinite;
-      will-change: transform;
-    }
-
-    .cover.rotate.paused .img-wrap {
-      animation-play-state: paused;
-    }
-
-    .controls {
-      color: var(--color-text);
-      width: min(50vh, 33.33vw);
-      margin-top: 3vh;
-      position: relative;
-
-      .top-part {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 18px;
-
-        .title {
-          // margin-top: 8px;
-          font-size: 20px;
-          font-weight: 600;
-          opacity: 0.88;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
-          overflow: hidden;
-        }
-        .haslist {
-          cursor: pointer;
-          &:hover {
-            text-decoration: underline;
-          }
-        }
-        .subtitle {
-          // margin-top: 4px;
-          font-size: 14px;
-          opacity: 0.7;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
-          line-clamp: 1;
-          overflow: hidden;
-        }
-
-        .top-right {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-
-          .buttons {
-            height: 34px;
-            display: flex;
-            justify-content: space-between;
-            button {
-              margin: 0 0 0 4px;
-            }
-            .svg-icon {
-              height: 18px;
-              width: 18px;
-            }
-            .comment {
-              height: 22px;
-              width: 22px;
-            }
-          }
-
-          .transPro {
-            cursor: pointer;
-            line-height: 34px;
-            padding: 0 6px;
-            margin: 0 2px;
-            display: flex;
-
-            label {
-              cursor: pointer;
-              opacity: 0.5;
-            }
-            .active {
-              opacity: 0.95;
-            }
-            .m-label {
-              margin: 0 2px;
-            }
-          }
-        }
-      }
-      :deep(.progress-bar) {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        .slider {
-          flex: 1;
-          padding: 0 10px;
-          contain: content;
-        }
-
-        .time {
-          font-size: 15px;
-          font-weight: 600;
-          opacity: 0.58;
-          width: 34px;
-          contain: content;
-        }
-      }
-      .media-controls {
-        display: flex;
-        justify-content: center;
-        margin: 1.9vh 0 1.1vh 0;
-        align-items: center;
-
-        .svg-icon {
-          opacity: 0.38;
-          height: 14px;
-          width: 14px;
-        }
-
-        .active .svg-icon {
-          opacity: 0.88;
-        }
-
-        .middle {
-          padding: 0 2.2vw;
-          display: flex;
-          align-items: center;
-
-          button {
-            margin: 0 1.2vw;
-          }
-
-          button#play .svg-icon {
-            height: 28px;
-            width: 28px;
-            padding: 2px;
-          }
-
-          .svg-icon {
-            opacity: 0.88;
-            height: 22px;
-            width: 22px;
-          }
-        }
-      }
-    }
-  }
-
-  .right-side {
-    flex: 1;
-    justify-self: center;
-    align-items: center;
-    height: 100vh;
-    box-sizing: border-box;
-    transition: all 0.35s;
-  }
-}
-
-.player-button {
-  z-index: 300;
-  border-radius: 0.75rem;
-  height: 44px;
-  width: 44px;
-  display: flex;
-  justify-content: center;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(300px, 1.1fr);
+  gap: 7vw;
   align-items: center;
-  opacity: 0.48;
-  transition: 0.2s;
-  -webkit-app-region: no-drag;
-
+}
+.left-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.cover {
+  width: min(42vh, 31vw, 420px);
+  position: relative;
+  .img-wrap {
+    aspect-ratio: 1;
+    width: 100%;
+  }
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+    user-select: none;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  }
+  .shadow {
+    display: none;
+  }
+  &.circle img,
+  &.rotate img {
+    border-radius: 50%;
+  }
+  &.rotate .img-wrap {
+    animation: circleRotate 20s linear infinite;
+  }
+  &.paused .img-wrap {
+    animation-play-state: paused;
+  }
+}
+.controls {
+  width: min(42vh, 31vw, 420px);
+  max-width: 100%;
+  margin-top: 24px;
+  color: var(--color-text);
+}
+.top-part {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.track-info {
+  min-width: 0;
+}
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.haslist {
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.subtitle {
+  margin-top: 6px;
+  color: color-mix(in srgb, var(--color-text), transparent 25%);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-right .buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  button {
+    margin: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+  }
   .svg-icon {
+    width: 17px;
+    height: 17px;
+  }
+}
+.transPro {
+  cursor: pointer;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding-right: 6px;
+  font-size: 13px;
+  label {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+  label.active {
+    opacity: 1;
+    color: var(--color-primary);
+  }
+}
+.progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  .slider {
+    flex: 1;
+    min-width: 0;
+  }
+  .time {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--color-text), transparent 30%);
+    min-width: 29px;
+  }
+  .time:last-child {
+    text-align: right;
+  }
+}
+.media-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0;
+  .svg-icon {
+    width: 17px;
+    height: 17px;
+    color: color-mix(in srgb, var(--color-text), transparent 30%);
+  }
+  .active .svg-icon {
+    color: var(--color-primary);
+  }
+  button {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    margin: 0;
+  }
+  .middle {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .middle .svg-icon {
+    width: 21px;
+    height: 21px;
     color: var(--color-text);
-    height: 22px;
-    width: 22px;
   }
-
-  &:hover {
-    background: var(--color-secondary-bg-for-transparent);
-    opacity: 0.88;
+  button#play {
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary);
   }
-}
-
-.theme-button {
-  position: fixed;
-  top: 24px;
-  right: 74px;
-}
-
-.close-button {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-}
-
-.button-icon.disabled {
-  cursor: default;
-  opacity: 0.48;
-  &:hover {
-    background: none;
-  }
-  &:active {
-    transform: unset;
+  button#play .svg-icon {
+    color: #0b180e;
+    width: 23px;
+    height: 23px;
   }
 }
-
-.lyric-container {
-  &.no-lyric {
-    justify-content: center;
-
-    .left-side {
-      padding: 0;
-    }
-    .right-side {
-      flex: 0;
-      padding: 0;
-    }
+.right-side {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.button-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+@media (max-width: 1000px) {
+  .play-page {
+    padding-inline: 6vw;
   }
-
-  &.isMobile {
-    flex-direction: column;
-    justify-content: center;
-    box-sizing: border-box;
-    .left-side {
-      flex: unset;
-      justify-content: unset;
-      padding: 0;
-      margin-bottom: 4vh;
-
-      .cover {
-        img,
-        .shadow {
-          height: 50vw;
-          width: 50vw;
-        }
-      }
-      .controls {
-        width: 50vw;
-        max-width: 50vw;
-      }
-    }
-    .right-side {
-      flex: unset;
-      padding: 0;
-      height: max(calc(100vh - 105vw), 20vh);
-      transition: all 0.35s;
-    }
-    &.no-lyric .right-side {
-      height: 0;
-      margin-top: 0;
-      transition: all 0.35s;
-    }
+  .lyric-container {
+    grid-template-columns: minmax(220px, 0.95fr) minmax(250px, 1.05fr);
+    gap: 5vw;
+  }
+  .title {
+    font-size: 23px;
+  }
+  .cover,
+  .controls {
+    width: min(40vh, 33vw);
   }
 }
-
+.lyric-container.isMobile {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(160px, 1fr);
+  gap: 18px;
+  .left-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+  .cover {
+    width: min(24vh, 28vw);
+    flex-shrink: 0;
+  }
+  .controls {
+    margin-top: 0;
+    width: min(52vw, 390px);
+  }
+  .top-part {
+    gap: 7px;
+  }
+  .top-right {
+    display: none;
+  }
+  .media-controls {
+    margin: 8px 0;
+  }
+  .right-side {
+    height: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover.rotate .img-wrap {
+    animation: none;
+  }
+}
 @keyframes circleRotate {
   from {
-    transform: rotate(0deg) translateZ(0);
+    transform: rotate(0deg);
   }
   to {
-    transform: rotate(360deg) translateZ(0);
+    transform: rotate(360deg);
   }
 }
 </style>

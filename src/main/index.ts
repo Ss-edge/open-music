@@ -106,7 +106,7 @@ class BackGround {
     process.on('uncaughtException', (err) => {
       console.error('[uncaughtException]', err)
     })
-    if (process.platform === 'win32') app.setAppUserModelId('io.github.stark81.VutronMusic')
+    if (process.platform === 'win32') app.setAppUserModelId('io.local.openmusic')
     if (!app.requestSingleInstanceLock()) {
       app.quit()
       process.exit(0)
@@ -132,7 +132,7 @@ class BackGround {
     ])
 
     // create fastify app
-    // 失败必须 fail-closed：如果 41830 已被其它进程占用，窗口会加载到不属于本应用
+    // 失败必须 fail-closed：如果 41831 已被其它进程占用，窗口会加载到不属于本应用
     // 的内容（且 origin 相同，IPC 守卫无法识别），因此宁可退出也不能继续。
     try {
       this.fastifyApp = await this.createFastifyApp()
@@ -174,8 +174,8 @@ class BackGround {
 
     const port = Number(
       Constants.IS_DEV_ENV
-        ? Constants.ELECTRON_DEV_NETEASE_API_PORT || 40001
-        : Constants.ELECTRON_WEB_SERVER_PORT || 41830
+        ? Constants.ELECTRON_DEV_NETEASE_API_PORT || 40002
+        : Constants.ELECTRON_WEB_SERVER_PORT || 41831
     )
     // 显式只监听回环地址，避免在局域网网卡上暴露本地 API 与静态资源
     await server.listen({ port, host: '127.0.0.1' })
@@ -281,6 +281,9 @@ class BackGround {
       hiddenInMissionControl: true,
       skipTaskbar: true,
       maximizable: false,
+      // 从创建起置顶且不抢焦点，避免切到其它软件时出现未置顶的首帧。
+      alwaysOnTop: true,
+      focusable: false,
       webPreferences: Constants.DEFAULT_OSD_PREFERENCES
     }
 
@@ -321,10 +324,19 @@ class BackGround {
         option.y = y
       }
     }
-    this.lyricWin = new BrowserWindow(option)
+    const lyricWin = new BrowserWindow(option)
+    this.lyricWin = lyricWin
     // 安全边界：锁定导航 + 登记可信 IPC 调用方（仅限 OSD 专用通道）
-    hardenWindow(this.lyricWin, 'osd')
-    await this.lyricWin.loadURL(Constants.APP_OSD_URL)
+    hardenWindow(lyricWin, 'osd')
+    this.handleOSDWindowEvents(lyricWin, type)
+    try {
+      await lyricWin.loadURL(Constants.APP_OSD_URL)
+    } catch (error) {
+      // 快速关闭/切换模式会中止旧窗口加载，不能让它影响新窗口。
+      if (lyricWin.isDestroyed() || this.lyricWin !== lyricWin) return
+      this.hideOSDWindow()
+      throw error
+    }
   }
 
   toggleMouseIgnore(overrideLock?: boolean) {
@@ -401,51 +413,60 @@ class BackGround {
     this.lyricWin?.webContents.send('updateLyricInfo', data)
   }
 
-  handleOSDWindowEvents() {
-    this.lyricWin!.once('ready-to-show', () => {
-      this.lyricWin!.showInactive()
+  handleOSDWindowEvents(lyricWin: BrowserWindow, type: string) {
+    const isCurrentWindow = () => this.lyricWin === lyricWin && !lyricWin.isDestroyed()
+    lyricWin.once('ready-to-show', () => {
+      if (!isCurrentWindow() || !store.get('osdWin.show')) return
+      lyricWin.showInactive()
     })
-    this.lyricWin!.webContents.on('did-finish-load', () => {
+    lyricWin.webContents.on('did-finish-load', () => {
+      if (!isCurrentWindow()) return
       this.toggleMouseIgnore()
-      setTimeout(() => {
-        this.lyricWin!.setFocusable(false)
-        this.lyricWin!.setAlwaysOnTop(true)
-      }, 100)
     })
 
-    this.lyricWin!.on('resize', () => {
-      const data = this.lyricWin!.getBounds()
-      store.set(this.osdMode === 'small' ? 'osdWin.width' : 'osdWin.width2', data.width)
-      store.set(this.osdMode === 'small' ? 'osdWin.height' : 'osdWin.height2', data.height)
+    lyricWin.on('resize', () => {
+      if (!isCurrentWindow()) return
+      const data = lyricWin.getBounds()
+      store.set(type === 'small' ? 'osdWin.width' : 'osdWin.width2', data.width)
+      store.set(type === 'small' ? 'osdWin.height' : 'osdWin.height2', data.height)
     })
 
     let moveTimeout: ReturnType<typeof setTimeout>
-    this.lyricWin!.on('move', () => {
+    lyricWin.on('move', () => {
+      if (!isCurrentWindow()) return
       if (moveTimeout) {
         clearTimeout(moveTimeout)
       }
       moveTimeout = setTimeout(() => {
-        if (!this.lyricWin) return
-        const data = this.lyricWin.getBounds()
-        store.set(this.osdMode === 'small' ? 'osdWin.x' : 'osdWin.x2', data.x)
-        store.set(this.osdMode === 'small' ? 'osdWin.y' : 'osdWin.y2', data.y)
+        if (!isCurrentWindow()) return
+        const data = lyricWin.getBounds()
+        store.set(type === 'small' ? 'osdWin.x' : 'osdWin.x2', data.x)
+        store.set(type === 'small' ? 'osdWin.y' : 'osdWin.y2', data.y)
       }, 500)
+    })
+
+    lyricWin.once('closed', () => {
+      clearTimeout(moveTimeout)
+      if (this.lyricWin === lyricWin) {
+        this.stopLockMouseWatcher()
+        this.lyricWin = null
+      }
     })
   }
 
   hideOSDWindow() {
-    if (this.lyricWin) {
-      this.stopLockMouseWatcher()
-      this.lyricWin.close()
-      this.lyricWin = null
-    }
+    const lyricWin = this.lyricWin
+    this.lyricWin = null
+    this.stopLockMouseWatcher()
+    if (lyricWin && !lyricWin.isDestroyed()) lyricWin.close()
   }
 
   showOSDWindow(type = 'small') {
     const osdLyric = (store.get('osdWin.show') as boolean) || false
     if (!this.lyricWin && osdLyric) {
-      this.createOSDWindow(type)
-      this.handleOSDWindowEvents()
+      this.createOSDWindow(type).catch((error) => {
+        log.error('桌面歌词窗口加载失败:', error)
+      })
     }
   }
 

@@ -17,10 +17,9 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref, computed, inject, watch } from 'vue'
+import { ref, computed, inject, watch, onMounted, onBeforeUnmount } from 'vue'
 import eventBus from '../utils/eventBus'
 import { useNormalStateStore } from '../store/state'
-import { useSettingsStore } from '../store/settings'
 import { useRouter } from 'vue-router'
 
 const show = ref(false)
@@ -34,31 +33,35 @@ const updateUserSelect = inject('updateUserSelect', ref(false))
 const normalState = useNormalStateStore()
 const { scrollbar } = storeToRefs(normalState)
 
-const settingsStore = useSettingsStore()
-const { general } = storeToRefs(settingsStore)
+const mainRef = inject('mainRef', ref<HTMLElement>())
+const panelHeight = ref(0)
+const activeScroll = computed(() =>
+  scrollbar.value.active ? scrollbar.value.instances[scrollbar.value.active] : undefined
+)
+const scrollHeight = computed(() => activeScroll.value?.listHeight || 0)
+const clientHeight = computed(() => activeScroll.value?.containerHeight || 0)
+const scrollTop = computed(() => activeScroll.value?.scrollTop || 0)
+const trackHeight = computed(() => panelHeight.value || clientHeight.value)
+const scrollRange = computed(() => Math.max(0, scrollHeight.value - clientHeight.value))
+const thumbHeight = computed(() =>
+  Math.min(
+    trackHeight.value,
+    Math.max(30, (clientHeight.value / (scrollHeight.value || 1)) * trackHeight.value)
+  )
+)
+const thumbTravel = computed(() => Math.max(0, trackHeight.value - thumbHeight.value))
+const updatePanelHeight = () => {
+  panelHeight.value = mainRef.value?.clientHeight || 0
+}
+const panelObserver = new ResizeObserver(updatePanelHeight)
 
-const marginTop = computed(() => {
-  return window.env?.isMac || general.value.useCustomTitlebar ? 84 : 64
-})
-
-const scrollHeight = computed(() => {
-  return scrollbar.value.active
-    ? scrollbar.value.instances[scrollbar.value.active].listHeight - marginTop.value
-    : 0
-})
-
-const clientHeight = computed(() => {
-  return scrollbar.value.active
-    ? scrollbar.value.instances[scrollbar.value.active].containerHeight - marginTop.value
-    : 0
-})
-
-const scrollTop = computed(() => {
-  return scrollbar.value.active ? scrollbar.value.instances[scrollbar.value.active].scrollTop : 0
+onMounted(() => {
+  updatePanelHeight()
+  if (mainRef.value) panelObserver.observe(mainRef.value)
 })
 
 watch(scrollTop, () => {
-  show.value = true
+  show.value = scrollRange.value > 0
   setScrollbarHideTimeout()
 })
 
@@ -74,11 +77,10 @@ watch(
 )
 
 const thumbStyle = computed(() => {
-  if (!scrollHeight.value) return {}
-  let thumHeight = ~~((clientHeight.value / scrollHeight.value) * clientHeight.value)
-  const top = ~~((scrollTop.value / scrollHeight.value) * clientHeight.value)
-  thumHeight = Math.max(thumHeight, 30)
-  return { height: `${thumHeight}px`, transform: `translateY(${top}px)` }
+  if (!scrollRange.value) return {}
+  const position = Math.min(scrollRange.value, Math.max(0, scrollTop.value))
+  const top = (position / scrollRange.value) * thumbTravel.value
+  return { height: `${thumbHeight.value}px`, transform: `translateY(${top}px)` }
 })
 
 const handleMouseenter = () => {
@@ -113,8 +115,10 @@ const handleDragStart = (event: MouseEvent) => {
 }
 
 const handleDragMove = (e: MouseEvent) => {
-  if (!isOnDrag.value) return
-  const offset = ~~(((e.clientY - onDragClientY.value) / clientHeight.value) * scrollHeight.value)
+  if (!isOnDrag.value || !thumbTravel.value) return
+  const offset = Math.round(
+    ((e.clientY - onDragClientY.value) / thumbTravel.value) * scrollRange.value
+  )
   eventBus.emit('update-scroll-bar', { active: scrollbar.value.active, offset })
 }
 
@@ -126,6 +130,12 @@ const handleDragEnd = () => {
   document.removeEventListener('mouseup', handleDragEnd)
 }
 
+onBeforeUnmount(() => {
+  panelObserver.disconnect()
+  if (hideTimer.value) clearTimeout(hideTimer.value)
+  handleDragEnd()
+})
+
 router.beforeEach((to, from, next) => {
   show.value = false
   scrollMainTo(0, 'instant')
@@ -136,14 +146,13 @@ router.beforeEach((to, from, next) => {
 <style scoped lang="scss">
 .scrollbar {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  top: calc(var(--open-titlebar-height, 0px) + 80px);
+  right: 8px;
+  bottom: var(--open-player-space, 104px);
   width: 16px;
   z-index: 1000;
 
   .thumbContainer {
-    margin-top: v-bind('`${marginTop}px`');
     div {
       transition: background 0.4s;
       position: absolute;

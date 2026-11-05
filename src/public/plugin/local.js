@@ -75,7 +75,7 @@ const streamUrl = (id) => `vutron://local-asset?type=stream&id=${id}`
  * 构建本地封面 URL（走 HTTP 服务器）
  *
  */
-const localServerUrl = 'http://localhost:41830' // 默认生产端口
+const localServerUrl = 'http://localhost:41831' // 默认生产端口
 
 const picUrl = (id, size = 512) => `${localServerUrl}/local-asset?trackId=${id}&size=${size}`
 const singerPicUrl = `${localServerUrl}/local-asset/singer-cover`

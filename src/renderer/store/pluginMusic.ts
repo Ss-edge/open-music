@@ -890,7 +890,7 @@ export const usePluginMusic = defineStore(
 
       window.mainApi?.on('scanLocalMusicDone', async () => {
         scanning.value = false
-        showToast('scanLocalMusicDone')
+        showToast('本地音乐扫描完成')
         const key = 'local' as PluginId
         if (tracks[key]) {
           tracks[key].data = []

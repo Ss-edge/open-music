@@ -23,7 +23,12 @@
           :key="index"
           class="lyric"
           :class="{ active: index === highlight }"
+          role="button"
+          tabindex="0"
+          :aria-label="'播放这一句：' + lyric.lyric.text"
           @click="seek = lyric.start - lyricOffset"
+          @keydown.enter.prevent="seek = lyric.start - lyricOffset"
+          @keydown.space.prevent="seek = lyric.start - lyricOffset"
         >
           <LyricLine
             ref="lyricRefs"
@@ -39,6 +44,11 @@
           />
         </div>
       </div>
+    </div>
+    <div v-else class="lyric-empty" role="status">
+      <svg-icon icon-class="lyric" />
+      <p>暂无可用歌词</p>
+      <span>有歌词的歌曲会在这里同步显示</span>
     </div>
   </transition>
 </template>
@@ -299,12 +309,37 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  clearTimeout(scrollingTimer)
   clearAnimations()
   lyricRefs.value = []
 })
 </script>
 
 <style scoped lang="scss">
+.lyric-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-text), transparent 25%);
+
+  .svg-icon {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 12px;
+  }
+  p {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  span {
+    font-size: 13px;
+  }
+}
+
 .lyric-wrapper {
   position: relative;
   height: 100%;
@@ -363,6 +398,11 @@ onBeforeUnmount(() => {
 
     &:hover {
       background: var(--color-secondary-bg-for-transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -2px;
     }
 
     &.active {

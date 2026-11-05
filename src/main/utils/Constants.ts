@@ -1,12 +1,12 @@
 import { join, dirname } from 'path'
-import { name, version } from '../../../package.json'
+import { productName, version } from '../../../package.json'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default class Constants {
-  // Display app name (uppercase first letter)
-  static APP_NAME = name.charAt(0).toUpperCase() + name.slice(1)
+  // Display the fork identity independently of the npm package name
+  static APP_NAME = productName
 
   static APP_VERSION = version
 
@@ -32,13 +32,13 @@ export default class Constants {
     preload: join(__dirname, '../preload/osdWin.js')
   }
 
-  static ELECTRON_WEB_SERVER_PORT = 41830
-  static ELECTRON_DEV_NETEASE_API_PORT = 40001
+  static ELECTRON_WEB_SERVER_PORT = 41831
+  static ELECTRON_DEV_NETEASE_API_PORT = 40002
 
   /**
    * 渲染进程所在的可信 origin（主窗口与桌面歌词窗口同源）。
    *
-   * - dev：Vite 开发服务器（vite.config.ts 中 port=41830 且 strictPort=true）
+   * - dev：Vite 开发服务器（vite.config.ts 中 port=41831 且 strictPort=true）
    * - prod：内嵌 Fastify 静态服务（ELECTRON_WEB_SERVER_PORT）
    *
    * 该值是安全边界的一部分：窗口导航锁与 IPC 调用方校验都以它为准，

@@ -12,9 +12,10 @@ export const useSettingsStore = defineStore(
   'settings',
   () => {
     const theme = reactive({
-      appearance: 'auto' as Appearance,
+      appearance: 'dark' as Appearance,
       colors: [
-        { name: 'blue', color: 'rgba(51, 94, 234, 1)', selected: true },
+        { name: 'green', color: 'rgba(30, 215, 96, 1)', selected: true },
+        { name: 'blue', color: 'rgba(51, 94, 234, 1)', selected: false },
         { name: 'purple', color: 'rgba(136, 84, 208, 1)', selected: false },
         { name: 'orange', color: 'rgba(234, 136, 51, 1)', selected: false },
         { name: 'cyan', color: 'rgba(29, 185, 181, 1)', selected: false },
@@ -42,7 +43,7 @@ export const useSettingsStore = defineStore(
       savedBackground: 'true' as StandardBackgroundEffect,
       fadeDuration: 0.5, // 音频淡入淡出时长（秒）
       showBanner: true,
-      autoUpdate: true,
+      autoUpdate: false,
       jumpToLyricBegin: false,
       trayColor: 0, // 0: 彩色, 1: 白色, 2: 黑色, 3: 跟随系统
       showChorus: true, // 进度条显示副歌时间
@@ -94,7 +95,7 @@ export const useSettingsStore = defineStore(
       )
 
     const misc = reactive({
-      enableAmuseServer: true,
+      enableAmuseServer: false,
       enableDiscordRichPresence: false,
       lastfm: { enable: false, name: '' },
       proxy: { type: 0, address: '', port: '' },

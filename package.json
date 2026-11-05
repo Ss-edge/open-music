@@ -1,5 +1,6 @@
 {
-  "name": "VutronMusic",
+  "name": "open-music",
+  "productName": "Open Music",
   "packageManager": "yarn@1.22.22",
   "description": "",
   "version": "3.3.5",

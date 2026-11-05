@@ -31,7 +31,7 @@ Phase 1: BackGround.init() (app.whenReady 之前)
   ⑦ 创建 Fastify HTTP 服务器 ← 在 app ready 之前启动！
      ├── 注册 fastifyCookie / fastifyStatic
      ├── 加载 NeteaseCloudMusicApi
-     └── 监听端口 (40001 dev / 41830 prod)
+     └── 监听端口 (40002 dev / 41831 prod)
 
 Phase 2: app.whenReady() 回调
 ═══════════════════════════════════════════════════

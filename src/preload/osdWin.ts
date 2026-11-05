@@ -72,11 +72,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const root = document.querySelector('#main') as HTMLElement
   const lockEl = document.querySelector('#osd-lock') as HTMLElement
+  if (!root) return
+
+  // 空闲时只隐藏控件。歌词本身必须保持可读，不能随焦点/鼠标停留淡出。
+  const hideUnlockButton = () => {
+    if (!lockEl) return
+    const wasInteractive = lockEl.style.pointerEvents !== 'none'
+    lockEl.style.opacity = '0'
+    lockEl.style.pointerEvents = 'none'
+    // 鼠标可能正停在按钮上，恢复锁定窗口的点击穿透，避免透明控件拦截点击。
+    if (wasInteractive) ipcRenderer.send('mouseleave')
+  }
 
   let osdLyricConfig: Record<string, any> = JSON.parse(localStorage.getItem('osdLyric') || '{}')
   window.addEventListener('storage', (e: StorageEvent) => {
     if (e.key === 'osdLyric') {
       osdLyricConfig = JSON.parse(e.newValue || '{}')
+      clearTimeout(timeoutId)
+      lastTrackedPos = null
+      if (osdLyricConfig.showButtonWhenLock === false) hideUnlockButton()
     }
   })
 
@@ -94,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const { inside } = data
 
       if (!root.classList.contains('is-lock')) {
+        clearTimeout(timeoutId)
+        clearTimeout(hideButtonTimeout)
+        hideButtonTimeout = null
+        lastTrackedPos = null
         // 未锁定状态：仅当 enter/leave 状态真正变化时才通知 Vue，防止每 50ms 触发重渲染
         if (inside !== wasInside) {
           wasInside = inside
@@ -106,34 +124,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!inside) {
         // 光标确实已经离开窗口（基于真实坐标判断，不存在漏检）：
-        // 100ms 后隐藏解锁按钮、恢复窗口不透明。注意不能在这里 clearTimeout(hideButtonTimeout)：
+        // 100ms 后隐藏解锁按钮。注意不能在这里 clearTimeout(hideButtonTimeout)：
         // 轮询间隔 50ms 会不断重置定时器导致永远无法触发。
         lastTrackedPos = null
         clearTimeout(timeoutId)
         if (!hideButtonTimeout) {
           hideButtonTimeout = setTimeout(() => {
-            if (lockEl) lockEl.style.opacity = '0'
-            root.style.opacity = '1'
+            hideUnlockButton()
             hideButtonTimeout = null
           }, 100)
         }
         return
       }
 
-      // 光标在窗口内：取消”即将隐藏”的计时、确保按钮可见
+      // 光标在窗口内：取消移出后的隐藏计时。
       clearTimeout(hideButtonTimeout)
       hideButtonTimeout = null
-      if (lockEl) lockEl.style.opacity = '1'
 
       const moved = !lastTrackedPos || lastTrackedPos.x !== x || lastTrackedPos.y !== y
       lastTrackedPos = { x, y }
 
-      if (!moved) return // 光标静止在窗口内，不重置 idle 计时，保留原有的“空闲后淡出”行为
+      if (!moved) return // 静止轮询不能重新显示已经自动隐藏的按钮。
 
-      // 光标确实移动了：立即恢复可见（修复之前重新移入后无法恢复不透明的问题），
-      // 并重新走一遍“空闲 staticTime 后淡出”的计时。
       clearTimeout(timeoutId)
-      root.style.opacity = '1'
+      if (osdLyricConfig.showButtonWhenLock === false) {
+        hideUnlockButton()
+        return
+      }
+      if (lockEl) {
+        lockEl.style.opacity = '1'
+        lockEl.style.pointerEvents = 'auto'
+      }
       if (osdLyricConfig?.staticTime === 0) return
 
       lastMoveTime = Date.now()
@@ -142,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
           root?.classList?.contains('is-lock') &&
           Date.now() - lastMoveTime >= (osdLyricConfig.staticTime ?? 1500)
         ) {
-          root.style.opacity = '0.02'
+          hideUnlockButton()
         }
       }, osdLyricConfig.staticTime ?? 1500)
     }

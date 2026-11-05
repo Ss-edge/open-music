@@ -283,7 +283,7 @@ const image = computed(() => {
   } else if (track.type === 'stream') {
     return track.picUrl
   } else {
-    url = `http://localhost:41830/local-asset?trackId=${track.id}&size=64`
+    url = `http://localhost:41831/local-asset?trackId=${track.id}&size=64`
     return url
   }
 })

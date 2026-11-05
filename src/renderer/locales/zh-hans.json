@@ -1,4 +1,15 @@
 {
+  "openMusic": {
+    "navigation": "主要导航",
+    "yourLibrary": "你的音乐库",
+    "makeItYours": "收藏，让音乐属于你",
+    "libraryHint": "登录音乐平台，或添加本地音乐。你的歌单会显示在这里。",
+    "openLibrary": "打开音乐库",
+    "back": "后退",
+    "forward": "前进",
+    "searchPlaceholder": "今天想听点什么？",
+    "account": "账号菜单"
+  },
   "nav": {
     "home": "首页",
     "search": "搜索",
@@ -372,6 +383,7 @@
       "light": "浅色",
       "dark": "深色",
       "accent": "强调色",
+      "green": "绿色",
       "blue": "蓝色",
       "purple": "紫色",
       "orange": "橙色",
@@ -441,14 +453,14 @@
         "desc": "歌词页上下边缘启用透明渐变的效果"
       },
       "staticTime": {
-        "text": "鼠标停留时长",
-        "desc": "锁定后，鼠标停留该时长后（毫秒）降低窗体透明度，",
+        "text": "解锁按钮自动隐藏时间",
+        "desc": "锁定后，鼠标静止该时长后（毫秒）隐藏解锁按钮，歌词保持可见。",
         "desc2": "设置为0则表示不启用该功能，Linux系统下无效"
       },
       "showButtonWhenLock": {
         "text": "锁定后显示解锁按钮",
         "desc": "启用后，锁定桌面歌词窗口时仍然显示解锁按钮",
-        "desc2": "并启用鼠标停留降低窗体透明度功能"
+        "desc2": "鼠标静止后可自动隐藏按钮，移动鼠标后再次显示，歌词始终可见"
       },
       "lyricZoom": "放缩当前播放的歌词",
       "lyricBold": "字体加粗"

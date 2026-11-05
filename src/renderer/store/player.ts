@@ -48,7 +48,7 @@ export const usePlayerStore = defineStore(
     const playbackRate = ref(1)
     const lastProgressReport = ref(0)
     let _pendingEndReport = false
-    const title = ref('VutronMusic')
+    const title = ref('Open Music')
     const isEnd = ref(false)
     const setSeek = ref(false)
 
@@ -59,7 +59,7 @@ export const usePlayerStore = defineStore(
     const currentTrack = ref<Track>()
     const nextTrack = ref<Track>()
     const chorus = ref(0)
-    const pic = ref('http://localhost:41830/local-asset/default-cover')
+    const pic = ref('http://localhost:41831/local-asset/default-cover')
 
     // FM 私有电台
     const fmTracks = ref<Track[]>([])

@@ -29,12 +29,12 @@ last-reviewed: 2026-09-26
 
 ### 为什么必须单 worker
 
-被测应用是**单实例 + 固定端口 41830** 的桌面应用：
+被测应用是**单实例 + 固定端口 41831** 的桌面应用：
 
 - 主进程在端口被占用时会 fail-closed 直接退出（`src/main/index.ts`，防止窗口加载到同 origin 的他人内容）；
 - `app.requestSingleInstanceLock()` 的锁按 userData 目录隔离，因此每个 spec 都必须用独立的 `--user-data-dir`。
 
-多个 Electron 实例并行运行会互相抢 41830，表现为用例随机超时。因此 `workers` 固定为 1。
+多个 Electron 实例并行运行会互相抢 41831，表现为用例随机超时。因此 `workers` 固定为 1。
 
 ### 启动参数（每个 spec 都必须带）
 
@@ -78,10 +78,10 @@ args: ['dist/main/index.js', '--no-sandbox', `--user-data-dir=${userDataDir}`]
 | `yarn test`       | 先执行 `build:pre`（类型检查 + Vite 构建），再运行 Playwright |
 | `yarn test:linux` | Linux 下通过 `xvfb-run` 运行（需要虚拟帧缓冲）                |
 
-**前置条件**：运行 E2E 前必须关闭正在运行的 VutronMusic / `yarn dev`，否则 41830 被占用，主进程会 fail-closed 退出，测试会在 `beforeAll` 超时。
+**前置条件**：运行 E2E 前必须关闭正在运行的 Open Music / `yarn dev`，否则 41831 被占用，主进程会 fail-closed 退出，测试会在 `beforeAll` 超时。
 
 ```bash
-lsof -nP -iTCP:41830 -sTCP:LISTEN   # 应无输出
+lsof -nP -iTCP:41831 -sTCP:LISTEN   # 应无输出
 npx playwright test tests/security.spec.ts
 ```
 
