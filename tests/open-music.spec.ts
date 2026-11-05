@@ -104,7 +104,7 @@ test('Spotify shell fits both desktop sizes, with a permanently usable search an
   await input.press('Enter')
   await expect(input).toBeVisible()
   await expect(input).toHaveValue('')
-  await page.locator('.settings-link').click()
+  await page.locator('.right-part').getByRole('button', { name: '设置', exact: true }).click()
   await page.waitForURL('**/#/settings')
   await expect(page.getByText('绿色', { exact: true })).toBeVisible()
   await capture('settings-1080-final')

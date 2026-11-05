@@ -26,10 +26,6 @@
       </button>
     </nav>
 
-    <div class="library-heading">
-      <SvgIcon icon-class="library" />
-      <span>{{ $t('openMusic.yourLibrary') }}</span>
-    </div>
     <nav class="library-nav">
       <button
         v-if="enableLibrary"
@@ -88,15 +84,6 @@
         >
       </div>
     </div>
-
-    <button
-      class="settings-link"
-      :class="{ active: isCurrentRoute('/settings') }"
-      :title="$t('nav.settings')"
-      @click="handleRoute('/settings')"
-    >
-      <SvgIcon icon-class="settings" /><span>{{ $t('nav.settings') }}</span>
-    </button>
   </aside>
 </template>
 
@@ -181,6 +168,9 @@ const isCurrentRoute = (path: string) => path === route.path
   flex-direction: column;
   gap: 4px;
 }
+.primary-nav:not(:empty) + .library-nav {
+  margin-top: 24px;
+}
 .side-nav button {
   display: flex;
   align-items: center;
@@ -209,19 +199,6 @@ const isCurrentRoute = (path: string) => path === route.path
   &.active {
     background: var(--color-secondary-bg);
     color: var(--color-text);
-  }
-}
-.library-heading {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  padding: 28px 12px 14px;
-  color: var(--color-secondary);
-  font-size: 14px;
-  font-weight: 700;
-  .svg-icon {
-    width: 22px;
-    height: 22px;
   }
 }
 .saved-library {
@@ -304,10 +281,6 @@ const isCurrentRoute = (path: string) => path === route.path
     font-size: 12px;
   }
 }
-.settings-link {
-  margin-top: 12px;
-  flex-shrink: 0;
-}
 @media (max-width: 1000px) {
   .brand-name {
     font-size: 21px;
@@ -335,7 +308,6 @@ const isCurrentRoute = (path: string) => path === route.path
   }
   .brand-name,
   .side-nav button span,
-  .library-heading span,
   .saved-library {
     display: none;
   }
@@ -343,12 +315,6 @@ const isCurrentRoute = (path: string) => path === route.path
     justify-content: center;
     gap: 0;
     padding: 12px;
-  }
-  .library-heading {
-    padding: 24px 12px 12px;
-  }
-  .settings-link {
-    margin-top: auto;
   }
 }
 </style>

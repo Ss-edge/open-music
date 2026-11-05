@@ -6,7 +6,7 @@
       v-model="plugin"
       :options="options"
     />
-    <div class="search-container">
+    <div class="search-container" :class="{ 'is-expanded': showInput }">
       <button
         ref="searchIconRef"
         type="button"
@@ -156,6 +156,7 @@ onUnmounted(() => {
 .container {
   display: flex;
   align-items: center;
+  min-width: 0;
 
   &:deep(.custom-select) {
     height: 32px;
@@ -177,7 +178,23 @@ onUnmounted(() => {
   -webkit-app-region: no-drag;
   height: 32px;
   box-sizing: border-box;
+  min-width: 0;
   background: var(--color-secondary-bg-for-transparent);
+
+  &.is-expanded {
+    padding-right: 10px;
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--color-text);
+    outline-offset: -2px;
+  }
+
+  .search-input:focus-visible,
+  .search-icon:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
 }
 
 .search-icon {
@@ -188,6 +205,7 @@ onUnmounted(() => {
   color: inherit;
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -199,11 +217,19 @@ onUnmounted(() => {
 }
 
 .search-input {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  min-width: 0;
+  height: calc(100% - 8px);
+  flex-shrink: 1;
   padding: 4px;
   font-size: 14px;
   font-weight: 500;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
   color: var(--color-text);
   background: transparent;
   transition: all 0.3s;

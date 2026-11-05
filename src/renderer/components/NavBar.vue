@@ -81,6 +81,7 @@
       <div class="right-part">
         <SearchBox
           ref="searchBoxRef"
+          class="header-search"
           :services="searchSources"
           :default-code="general.searchPlugin"
           :clear-keywords="true"
@@ -89,6 +90,17 @@
           :placeholder="$t('openMusic.searchPlaceholder')"
           @keydown-enter="doSearch"
         />
+        <button
+          type="button"
+          class="settings-button"
+          :class="{ active: route.path === '/settings' }"
+          :aria-current="route.path === '/settings' ? 'page' : undefined"
+          :aria-label="$t('nav.settings')"
+          :title="$t('nav.settings')"
+          @click="router.push('/settings')"
+        >
+          <svg-icon icon-class="settings" />
+        </button>
         <button
           class="profile-button"
           :aria-label="$t('openMusic.account')"
@@ -297,6 +309,7 @@ nav {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex-shrink: 0;
   .item {
     white-space: nowrap;
     cursor: pointer;
@@ -322,7 +335,12 @@ nav {
   margin-left: auto;
   min-width: 0;
   -webkit-user-drag: none;
+  .header-search {
+    min-width: 0;
+    flex-shrink: 1;
+  }
   :deep(.search-container) {
+    min-width: 0;
     height: 44px;
     border-radius: 24px;
     background: var(--color-secondary-bg);
@@ -334,6 +352,7 @@ nav {
   :deep(.search-icon) {
     width: 42px;
     height: 42px;
+    flex-shrink: 0;
   }
   :deep(.search-icon .svg-icon) {
     width: 20px;
@@ -342,14 +361,28 @@ nav {
     color: var(--color-secondary);
   }
   :deep(.search-input) {
+    min-width: 120px;
+    flex-shrink: 1;
     max-width: 22vw;
     font-size: 13px;
   }
-  :deep(.custom-select) {
-    min-width: 82px;
-    max-width: 100px;
+  :deep(.select-wrapper) {
+    width: 100px;
+    flex-shrink: 0;
+  }
+  :deep(.select-wrapper .custom-select) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  :deep(.custom-text) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
+.settings-button,
 .profile-button {
   width: 36px;
   height: 36px;
@@ -358,6 +391,25 @@ nav {
   flex-shrink: 0;
   background: var(--color-secondary-bg);
   -webkit-app-region: no-drag;
+}
+.settings-button {
+  display: grid;
+  place-items: center;
+  color: var(--color-secondary);
+  &:hover {
+    color: var(--color-text);
+    background: var(--color-secondary-bg-for-transparent);
+  }
+  &.active {
+    color: var(--color-primary-contrast);
+    background: var(--color-text);
+  }
+  .svg-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+.profile-button {
   .avatar {
     display: block;
     width: 28px;
@@ -376,13 +428,16 @@ nav {
   .search-tabs {
     gap: 4px;
     .item {
-      padding: 7px 9px;
+      padding: 7px;
     }
   }
   .right-part {
     gap: 10px;
     :deep(.search-input) {
       max-width: 15vw;
+    }
+    :deep(.select-wrapper) {
+      width: 82px;
     }
   }
 }
@@ -399,9 +454,8 @@ nav {
   }
   .right-part {
     gap: 8px;
-    :deep(.custom-select) {
-      min-width: 70px;
-      max-width: 70px;
+    :deep(.select-wrapper) {
+      width: 70px;
     }
     :deep(.search-input) {
       max-width: 12vw;
