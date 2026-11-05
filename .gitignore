@@ -3,13 +3,14 @@
 
 # Node artifact files
 node_modules/
-yarn.lock
 
 # Log files
 *.log
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
 
 # JetBrains IDEs
 .idea/

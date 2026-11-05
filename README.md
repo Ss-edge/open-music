@@ -1,3 +1,46 @@
+# Open Music
+
+基于 [stark81/VutronMusic](https://github.com/stark81/VutronMusic) 定制的桌面音乐播放器。本仓库保留上游作者、许可证和历史记录。
+
+- 主界面参考 Spotify；播放和歌词页面参考网易云音乐。
+- 点击底部歌曲封面进入同步歌词，支持收起、Esc 与键盘操作。
+- 修复桌面歌词锁定后静止变透明，以及快速关闭和切换模式时的窗口回调问题。
+- 独立应用名称和本地端口，可与原播放器并行运行。
+
+## 开发与运行
+
+需要 Node.js >= 22.6.0、Yarn 1.22.22。
+
+```sh
+yarn install --frozen-lockfile
+yarn dev
+```
+
+构建 Windows 可运行目录：
+
+```sh
+yarn vue-tsc --noEmit
+yarn vite build
+yarn electron-builder --win --dir --config=buildAssets/builder/config.js --publish never
+```
+
+运行生成的 `release/3.3.5/win-unpacked/Open Music.exe`，或 Windows 下双击根目录的 `启动 Open Music.cmd`。运行包和 `node_modules` 不存入 Git。
+
+## 文档与验证
+
+- [使用说明、验证范围与回滚方法](OPEN-MUSIC-使用说明.md)
+- [界面设计记录](DESIGN.md)
+- [独立应用身份与端口](docs/src/spec/architecture/open-music-fork.md)
+- 本机验证：31 项行为回归、15 项 Electron 集成及安全测试通过，Windows x64 运行包已实际启动。其他系统和全部在线账号功能尚未实机验收。
+
+音质选择入口在“设置 → 音乐设置 → 音质选择”。当前上游网易云和酷狗插件仍使用固定请求参数，界面选择不保证改变实际音质；本地音乐按源文件播放。此限制尚未修复。
+
+## 许可证与上游说明
+
+保留根目录 [LICENSE](LICENSE) 及各文件原有的许可证、版权说明。下方保留上游项目说明，描述的截图和功能以其原项目为准。
+
+---
+
 <div align="center">
   <a href="https://github.com/stark81/VutronMusic" target="blank">
     <img src="buildAssets/icons/icon.png" alt="Logo" width="156" height="156">
